@@ -91,7 +91,7 @@ class KSubmodular():
 
 
 
-class KGreedyTotalBudgetConstrained(KSubmodular):
+class KGreedyTotalSizeConstrained(KSubmodular):
     name = 'k-Greedy-TS'
 
     def __init__(self, 
@@ -134,7 +134,7 @@ class KGreedyTotalBudgetConstrained(KSubmodular):
 
 
 
-class KStochasticGreedyTotalBudgetConstrained(KGreedyTotalBudgetConstrained):
+class KStochasticGreedyTotalSizeConstrained(KGreedyTotalSizeConstrained):
     name = 'k-Greedy-Stochastic-TS'
 
     def __init__(self, 
@@ -170,7 +170,7 @@ class KStochasticGreedyTotalBudgetConstrained(KGreedyTotalBudgetConstrained):
     
 
 
-class KGreedyIndividualBudgetConstrained(KSubmodular):
+class KGreedyIndividualSizeConstrained(KSubmodular):
     name = 'k-Greedy-IS'
 
     def __init__(self, 
@@ -219,7 +219,7 @@ class KGreedyIndividualBudgetConstrained(KSubmodular):
 
 
 
-class KStochasticGreedyIndividualBudgetConstrained(KGreedyIndividualBudgetConstrained):
+class KStochasticGreedyIndividualSizeConstrained(KGreedyIndividualSizeConstrained):
     name = 'k-Stochastic-Greedy-IS'
     
     def __init__(self, 
@@ -298,8 +298,8 @@ if __name__ == '__main__':
 
     value_function = value_function_template(n, B_i)
 
-    # experiment = KStochasticGreedyTotalBudgetConstrained(n, B_total=B_total, B_i = B_i, value_function=value_function)
-    experiment = KGreedyIndividualBudgetConstrained(n, B_total=B_total, B_i = B_i, value_function=value_function)
+    # experiment = KStochasticGreedyTotalSizeConstrained(n, B_total=B_total, B_i = B_i, value_function=value_function)
+    experiment = KGreedyIndividualSizeConstrained(n, B_total=B_total, B_i = B_i, value_function=value_function)
 
     experiment.run()
     print(experiment)
