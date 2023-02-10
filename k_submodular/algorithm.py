@@ -65,7 +65,7 @@ class KSubmodular():
 
     @property
     def K(self):
-        return len(B_i)    
+        return len(self.B_i)    
 
 
     def V_available(self):
