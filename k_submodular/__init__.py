@@ -1,1 +1,3 @@
-from .algorithm import KSubmodular, KGreedyTotalBudgetConstrained
+from .algorithm import KSubmodular, KGreedyTotalSizeConstrained, KGreedyIndividualSizeConstrained, KStochasticGreedyTotalSizeConstrained, KStochasticGreedyIndividualSizeConstrained
+
+import independent_cascade
