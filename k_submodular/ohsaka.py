@@ -62,6 +62,8 @@ class KSubmodular():
         # current value of the function 
         self.current_value = 0.
 
+        self.n_evaluations = 0
+
 
     @property
     def K(self):
@@ -78,6 +80,7 @@ class KSubmodular():
         :param i - item i, on index v
         """
         assert self.V[v] == -1, 'void already filled'
+        self.n_evaluations += 1
 
         return self.value_function(self.S + [(i, v)]) - self.current_value
 

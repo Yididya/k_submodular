@@ -1,5 +1,5 @@
 import numpy as np
-from algorithm import KSubmodular
+from ohsaka import KSubmodular
 
 
 
@@ -210,7 +210,8 @@ if __name__ == '__main__':
 
     value_function = value_function_template(n, B_i)
 
-    experiment = ThresholdGreedyIndividualSizeConstrained(n, B_total=B_total, B_i = B_i, value_function=value_function, tolerance=0.4)
+    experiment = ThresholdGreedyTotalSizeConstrained(n, B_total=B_total, B_i = B_i, value_function=value_function, tolerance=0.4)
+    # experiment = ThresholdGreedyIndividualSizeConstrained(n, B_total=B_total, B_i = B_i, value_function=value_function, tolerance=0.4)
 
     experiment.run()
     print(experiment)

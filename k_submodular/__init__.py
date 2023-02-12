@@ -1,3 +1,3 @@
-from .algorithm import KSubmodular, KGreedyTotalSizeConstrained, KGreedyIndividualSizeConstrained, KStochasticGreedyTotalSizeConstrained, KStochasticGreedyIndividualSizeConstrained
+from . import ohsaka, threshold_algorithm
 
-import independent_cascade
+from .influence_maximization import independent_cascade
