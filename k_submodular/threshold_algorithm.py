@@ -24,12 +24,22 @@ class ThresholdGreedyTotalSizeConstrained(KSubmodular):
             value_function
         )
 
-        self._tolerance = tolerance
+        self.tolerance = tolerance
+        # self._d = self._calculate_d()
+        # self._min_threshold = self._calculate_min_threshold()
+        # self.threshold = self._d
+
+    @property
+    def tolerance(self):
+        return self._tolerance
+
+
+    @tolerance.setter
+    def tolerance(self, val):
+        self._tolerance = val
         self._d = self._calculate_d()
         self._min_threshold = self._calculate_min_threshold()
-        self.threshold = self._d 
-
-
+        self.threshold = self._d
 
     def _calculate_d(self):
         """
@@ -48,7 +58,7 @@ class ThresholdGreedyTotalSizeConstrained(KSubmodular):
 
 
     def _calculate_min_threshold(self):
-        return self._d * (1 - self._tolerance) / (2 * self.B_total)
+        return self.tolerance * self._d * (1 - self.tolerance) / (2 * self.B_total)
 
 
 
@@ -91,7 +101,7 @@ class ThresholdGreedyTotalSizeConstrained(KSubmodular):
                 break
                     
             # update threshold 
-            self.threshold = (1 - self._tolerance) * self.threshold
+            self.threshold = (1 - self.tolerance) * self.threshold
 
         print(self.S)
         print(f'Final value {self.current_value}')
@@ -103,7 +113,7 @@ class ThresholdGreedyTotalSizeConstrained(KSubmodular):
 
 
 class ThresholdGreedyIndividualSizeConstrained(ThresholdGreedyTotalSizeConstrained):
-    name = "k-submodular-Greedy-IS"
+    name = "Threshold-Greedy-IS"
 
     def __init__(self, 
         n, 
@@ -141,7 +151,7 @@ class ThresholdGreedyIndividualSizeConstrained(ThresholdGreedyTotalSizeConstrain
 
 
     def _calculate_min_threshold(self):
-        return self._d * (1 - self._tolerance) / (3 * self.B_total)
+        return self.tolerance * self._d * (1 - self.tolerance) / (3 * self.B_total)
 
 
     def run(self):
@@ -155,17 +165,19 @@ class ThresholdGreedyIndividualSizeConstrained(ThresholdGreedyTotalSizeConstrain
                         if gain >= self.threshold:
                             # add (item, index) pair to list and 
                             self._V_available.remove(v)
+                            self.V[v] = i
                             self.S.append((i, v))
                             self.current_value += gain
                             
                             # Decrement the value of B_i
                             self.B_i[i] -= 1
+                            break
 
            
                         
           
             # update threshold 
-            self.threshold = (1 - self._tolerance) * self.threshold
+            self.threshold = (1 - self.tolerance) * self.threshold
 
             # check on budget 
             if self.budget_exhausted:
