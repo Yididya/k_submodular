@@ -1,3 +1,3 @@
-from . import ohsaka, threshold_algorithm
-
-from .influence_maximization import independent_cascade
+import ohsaka
+import threshold_algorithm
+# from . import influence_maximization
