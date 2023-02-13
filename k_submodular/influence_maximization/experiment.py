@@ -50,6 +50,7 @@ class Experiment:
                  n_mc=30,
                  n_mc_final=10_000,
                  algorithm=ohsaka.KGreedyTotalSizeConstrained,
+                 n_jobs=5
 
                  ):
 
@@ -60,6 +61,9 @@ class Experiment:
         self.friends_dataset = FriendDataset(friend_list_file)
 
         self.user_ids = self.friends_dataset.users
+        print(f'Using {len(self.user_ids)} users')
+
+
         self.n = len(self.user_ids)
         self.B_total = B_total # total budget
         self.B_i = B_i
@@ -67,12 +71,17 @@ class Experiment:
         self.tolerance = tolerance
         self.n_mc = n_mc
         self.n_mc_final = n_mc_final
+        self.n_jobs = n_jobs
+
+        print(f'Using {self.n_jobs} jobs, n_mc {self.n_mc}')
+
 
         self.networks = {}
         self.weights = {}
 
         self._load_weights(weights_file)
         self._initialize_weighted_networks()
+        print(f'Using K={len(self.networks.keys())} ')
 
         # initialize algorithm
         if self.tolerance is not None:
@@ -104,9 +113,8 @@ class Experiment:
         # Add weight to the network
         for topic_id in self.topics:
             G_topic = G.copy()
-
-            # self.networks[topic_id] = weighted_network.weighted_network(G_topic, None, weights=self.weights[topic_id])
-            self.networks[topic_id] = weighted_network.weighted_network(G_topic, 'rn')
+            self.networks[topic_id] = weighted_network.weighted_network(G_topic, None, weights=self.weights[topic_id])
+            # self.networks[topic_id] = weighted_network.weighted_network(G_topic, 'rn')
 
     def _load_weights(self, file):
         data = pd.read_csv(file, sep='\t', names=['Influencer', 'Influenced'] + [f'Topic{t}' for t in self.topics], header=0, index_col=False)
@@ -121,8 +129,7 @@ class Experiment:
 
     def value_function(self, seed_set, n_mc=None):
         n_mc = n_mc or self.n_mc
-        print(seed_set)
-        influences = []
+        infected_nodes = []
         for topic_idx, topic in enumerate(self.topics):
 
             # filter list of users by topic(item)
@@ -132,16 +139,18 @@ class Experiment:
             if seed_t:
                 # TODO: if this is the up
                 global ic_runner
-                def ic_runner(l):
+                def ic_runner(t):
                     layers = independent_cascade.independent_cascade(self.networks[topic], list(set(seed_t)))
-                    return sum([len(l) for l in layers])
+                    infected_nodes_ = [i for l in layers for i in l]
+                    return infected_nodes_
 
-                p = Pool(5)
-                influence_t = p.map(ic_runner, range(n_mc))
+                with Pool(self.n_jobs) as p:
+                    nodes = p.map(ic_runner, range(n_mc))
+                    nodes = [j for i in nodes for j in i]  # flatten
+                    infected_nodes.extend(nodes)
 
-                influences.append(np.mean(influence_t))
-
-        return np.sum(influences)
+        # Influences
+        return len(set(infected_nodes))
 
 
     def run(self):
@@ -159,10 +168,6 @@ class Experiment:
             'tolerance': self.tolerance[i] if self.tolerance is not None else None
         } for i, alg in enumerate(self.algorithms)]
 
-def plot_results(output_dir,
-                 algs,
-                 B):
-    plt.plot()
 
 
 
@@ -170,8 +175,8 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Experiment runner')
     parser.add_argument('--mode', action='store', type=str, default='run', choices=['run', 'plot'])
-    parser.add_argument('--B', action='store', type=int, default=[5, 8], nargs='+')
-    parser.add_argument('--n-cores', action='store', type=int, default=5)
+    parser.add_argument('--B', action='store', type=int, default=[2, 3], nargs='+')
+    parser.add_argument('--n-jobs', action='store', type=int, default=20)
     parser.add_argument('--tolerance', action='store', type=float, default=[0.1, 0.2], nargs='+')
     parser.add_argument('--output', action='store', type=str, required=False)
     parser.add_argument('--alg', action='store', type=str, default=None,
@@ -181,7 +186,7 @@ if __name__ == '__main__':
 
     mode = args.mode
     B_totals = args.B
-    n_cores = args.n_cores
+    n_jobs = args.n_jobs
     tolerance_vals = args.tolerance
 
     # prepare directories
@@ -214,7 +219,8 @@ if __name__ == '__main__':
                     B_i=[1] * len(topics),
                     topics=topics,
                     algorithm=alg,
-                    tolerance= tolerance_vals if 'Threshold' in alg.__name__ else None
+                    tolerance= tolerance_vals if 'Threshold' in alg.__name__ else None,
+                    n_jobs=n_jobs
                 )
 
 
