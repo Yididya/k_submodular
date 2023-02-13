@@ -2,6 +2,7 @@ import os, sys;
 import pickle
 
 sys.path.append(os.path.dirname('../'))
+import argparse
 
 from multiprocessing import Pool
 import numpy as np
@@ -166,20 +167,41 @@ def plot_results(output_dir,
 
 
 if __name__ == '__main__':
-    # prepare directories
-    # mode = 'run'
-    mode = 'plot'
 
+    parser = argparse.ArgumentParser(description='Experiment runner')
+    parser.add_argument('--mode', action='store', type=str, default='run', choices=['run', 'plot'])
+    parser.add_argument('--B', action='store', type=int, default=[5, 8], nargs='+')
+    parser.add_argument('--n-cores', action='store', type=int, default=5)
+    parser.add_argument('--tolerance', action='store', type=float, default=[0.1, 0.2], nargs='+')
+    parser.add_argument('--output', action='store', type=str, required=False)
+    parser.add_argument('--alg', action='store', type=str, default=None,
+                        choices=['KGreedyTotalSizeConstrained', 'KStochasticGreedyTotalSizeConstrained', 'ThresholdGreedyTotalSizeConstrained'])
+
+    args = parser.parse_args()
+
+    mode = args.mode
+    B_totals = args.B
+    n_cores = args.n_cores
+    tolerance_vals = args.tolerance
+
+    # prepare directories
     output_dir = './output'
     os.makedirs(output_dir, exist_ok=True)
+
+    alg_mappings = {
+        'KGreedyTotalSizeConstrained': [ohsaka.KGreedyTotalSizeConstrained],
+        'KStochasticGreedyTotalSizeConstrained': [ohsaka.KStochasticGreedyTotalSizeConstrained],
+        'ThresholdGreedyTotalSizeConstrained': [threshold_algorithm.ThresholdGreedyTotalSizeConstrained]
+    }
 
     algorithms = [
         ohsaka.KGreedyTotalSizeConstrained,
         ohsaka.KStochasticGreedyTotalSizeConstrained,
         threshold_algorithm.ThresholdGreedyTotalSizeConstrained
     ]
-    B_totals = [2, 5,10]
-    tolerance_vals = [0.1, 0.2]
+
+    if args.alg:
+        algorithms = alg_mappings[args.alg]
 
     if mode == 'run':
         for alg in algorithms:
@@ -206,7 +228,6 @@ if __name__ == '__main__':
         # load the files
         function_values = {}
         n_evaluations = {}
-
 
         algs = []
 
@@ -237,8 +258,6 @@ if __name__ == '__main__':
 
                         function_values[alg.name].append(r['function_value'])
                         n_evaluations[alg.name].append(r['n_evals'])
-
-
 
 
         marker_types = ['o', 'v', '*', 'D']
