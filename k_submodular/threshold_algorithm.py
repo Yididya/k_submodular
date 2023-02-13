@@ -99,6 +99,7 @@ class ThresholdGreedyTotalSizeConstrained(ohsaka.KSubmodular):
                             self.V[v] = i
                             self.S.append((i, v))
                             self.current_value += gain
+                            print(f'{self.__class__.__name__} - Added element idx {v}/ {self.B_total}')
                             break
 
                     else:
@@ -182,6 +183,7 @@ class ThresholdGreedyIndividualSizeConstrained(ThresholdGreedyTotalSizeConstrain
                             
                             # Decrement the value of B_i
                             self.B_i[i] -= 1
+                            print(f'{self.__class__.__name__} - Added element idx {v}/ {self.B_total}')
                             break
 
            
