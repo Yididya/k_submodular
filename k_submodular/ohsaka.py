@@ -64,6 +64,17 @@ class KSubmodular():
 
         self.n_evaluations = 0
 
+        ## marginal_gain lookup table for lazy evaluation
+        self.marginal_lookup_table = np.ones((self.K, self.n)) * np.inf
+
+
+    def lookup_marginal(self, i, v):
+        return self.marginal_lookup_table[i][v]
+
+
+    def update_marginal(self, i, v, value):
+        self.marginal_lookup_table[i][v] = value
+
 
     @property
     def K(self):
@@ -82,7 +93,11 @@ class KSubmodular():
         assert self.V[v] == -1, 'void already filled'
         self.n_evaluations += 1
 
-        return self.value_function(self.S + [(i, v)]) - self.current_value
+        value = self.value_function(self.S + [(i, v)]) - self.current_value
+
+        self.update_marginal(i, v, value)
+
+        return value
 
 
     def support(self):
@@ -118,15 +133,23 @@ class KGreedyTotalSizeConstrained(KSubmodular):
             max_item, max_value, gain = (None, None), 0., 0.
     
             for v in self.V_available():
-                for i in range(self.K): # over K item types 
+                for i in range(self.K): # over K item types
+                    lookup_value = self.lookup_marginal(i, v)
+                    if lookup_value < gain:
+                        # don't bother
+                        continue
+
                     gain = self.marginal_gain(i, v)
+
                     if gain > max_value:
                         max_item, max_value = (i, v), gain
                 
             # update V_available 
-            if max_item[0] is not None:
+            if max_item[0] is not None and max_item[1] is not None:
                 self._V_available.remove(max_item[1])
+                self.V[max_item[1]] = max_item[0]
                 self.S.append(max_item)
+
                 self.current_value += gain
 
         assert len(self.S) == self.B_total, "Budget must be used up" 
@@ -202,6 +225,10 @@ class KGreedyIndividualSizeConstrained(KSubmodular):
             for v in self.V_available():
                 for i, available in enumerate(self.B_i): # over K item types 
                     if available != 0:
+                        lookup_value = self.lookup_marginal(i, v)
+                        if lookup_value < gain:
+                            # don't bother
+                            continue
                         gain = self.marginal_gain(i, v)
                         if gain > max_value:
                             max_item, max_value = (i, v), gain
@@ -209,6 +236,7 @@ class KGreedyIndividualSizeConstrained(KSubmodular):
             # update V_available 
             if max_item[0] is not None:
                 self._V_available.remove(max_item[1])
+                self.V[max_item[1]] = max_item[0]
                 self.S.append(max_item)
                 self.current_value += gain
 
@@ -273,6 +301,10 @@ class KStochasticGreedyIndividualSizeConstrained(KGreedyIndividualSizeConstraine
                 for v in R:
                     for i, available in enumerate(self.B_i): # over K item types 
                         if available != 0:
+                            lookup_value = self.lookup_marginal(i, v)
+                            if lookup_value < gain:
+                                # don't bother
+                                continue
                             gain = self.marginal_gain(i, v)
                             if gain > max_value:
                                 max_item, max_value = (i, v), gain
