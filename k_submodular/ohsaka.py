@@ -138,7 +138,7 @@ class KGreedyTotalSizeConstrained(KSubmodular):
 
 
 class KStochasticGreedyTotalSizeConstrained(KGreedyTotalSizeConstrained):
-    name = 'k-Greedy-Stochastic-TS'
+    name = 'k-Stochastic-Greedy-TS'
 
     def __init__(self, 
                 n, 
@@ -223,7 +223,7 @@ class KGreedyIndividualSizeConstrained(KSubmodular):
 
 
 class KStochasticGreedyIndividualSizeConstrained(KGreedyIndividualSizeConstrained):
-    name = 'k-Stochastic-Greedy-IS'
+    name = 'k-Greedy-Stochastic-IS'
     
     def __init__(self, 
             n, 
@@ -280,6 +280,7 @@ class KStochasticGreedyIndividualSizeConstrained(KGreedyIndividualSizeConstraine
                 if max_item[0] is not None and len(R) >= self.subset_size_i(max_item[0]):
                     # update V_available 
                     self._V_available.remove(max_item[1])
+                    self.V[max_item[1]] = max_item[0]
                     self.S.append(max_item)
                     self.current_value += gain
 
