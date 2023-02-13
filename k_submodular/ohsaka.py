@@ -52,7 +52,7 @@ class KSubmodular():
         self.B_i = B_i
         self.B_total = B_total
 
-        self.V = [-1 for v in range(n) ] # universe of locations(indices)
+        self.V = [-1 for v in range(self.n) ] # universe of locations(indices)
         self._V_available = [i  for i, _ in enumerate(self.V)] # filtered available indices 
 
         self.S = [] # item-index pairs currently selected  -- (i, v) 
@@ -130,6 +130,7 @@ class KGreedyTotalSizeConstrained(KSubmodular):
         
         # until the budget is exhausted 
         for j in range(self.B_total):
+            print(f'{self.__class__.__name__} - Iteration {j}/{self.B_total}')
             max_item, max_value, gain = (None, None), 0., 0.
     
             for v in self.V_available():
@@ -220,6 +221,7 @@ class KGreedyIndividualSizeConstrained(KSubmodular):
         
         # until the budget is exhausted 
         for j in range(self.B_total):
+            print(f'{self.__class__.name} - Iteration {j}/{self.B_total}')
             max_item, max_value, gain = (None, None), 0., 0.
     
             for v in self.V_available():
@@ -287,6 +289,7 @@ class KStochasticGreedyIndividualSizeConstrained(KGreedyIndividualSizeConstraine
     def run(self):
         # until the budget is exhausted 
         for j in range(self.B_total):
+            print(f'{self.__class__.__name__} - Iteration {j}/{self.B_total}')
             R = []
 
             while True: 
