@@ -1,11 +1,11 @@
 import numpy as np
-from ohsaka import KSubmodular
+import ohsaka
 
 
 
 
-class ThresholdGreedyTotalSizeConstrained(KSubmodular):
-    name = "k-submodular-Greedy-TS"
+class ThresholdGreedyTotalSizeConstrained(ohsaka.KSubmodular):
+    name = "Threshold-Greedy-TS"
 
     def __init__(self, 
         n, 
@@ -86,13 +86,20 @@ class ThresholdGreedyTotalSizeConstrained(KSubmodular):
                     budget_exhausted = len(self.S) == self.B_total 
                     
                     if not budget_exhausted:
+                        # check table, make sure the saved marginal gain is >= current threshold
+                        # if yes, evaluate and update
+                        lookup_value = self.lookup_marginal(i, v)
+                        if lookup_value < self.threshold:
+                            # don't bother
+                            continue
                         gain = self.marginal_gain(i, v)
-                        
                         if gain >= self.threshold:
                             # add (item, index) pair to list and 
                             self._V_available.remove(v)
+                            self.V[v] = i
                             self.S.append((i, v))
                             self.current_value += gain
+                            break
 
                     else:
                         break
@@ -161,6 +168,10 @@ class ThresholdGreedyIndividualSizeConstrained(ThresholdGreedyTotalSizeConstrain
             for v in self.V_available():
                 for i, available in enumerate(self.B_i): # over K item types 
                     if available != 0:
+                        lookup_value = self.lookup_marginal(i, v)
+                        if lookup_value < self.threshold:
+                            # don't bother
+                            continue
                         gain = self.marginal_gain(i, v)
                         if gain >= self.threshold:
                             # add (item, index) pair to list and 
