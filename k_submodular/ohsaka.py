@@ -85,17 +85,19 @@ class KSubmodular():
         return self._V_available
 
 
-    def marginal_gain(self, i, v):
+    def marginal_gain(self, i, v, update_count=True):
         """
         marginal gain of adding item i onto index v
         :param i - item i, on index v
         """
         assert self.V[v] == -1, 'void already filled'
-        self.n_evaluations += 1
+        if update_count:
+            self.n_evaluations += 1
 
         value = self.value_function(self.S + [(i, v)]) - self.current_value
 
-        self.update_marginal(i, v, value)
+        if update_count:
+            self.update_marginal(i, v, value)
 
         return value
 
@@ -132,8 +134,8 @@ class KGreedyTotalSizeConstrained(KSubmodular):
         for j in range(self.B_total):
             print(f'{self.__class__.__name__} - Iteration {j}/{self.B_total}')
             max_item, max_value, gain = (None, None), 0., 0.
-    
-            for v in self.V_available():
+            V_avail = self._V_available.copy()
+            for v in V_avail:
                 for i in range(self.K): # over K item types
                     lookup_value = self.lookup_marginal(i, v)
                     if lookup_value < gain:
@@ -226,8 +228,8 @@ class KGreedyIndividualSizeConstrained(KSubmodular):
         for j in range(self.B_total):
             print(f'{self.__class__.name} - Iteration {j}/{self.B_total}')
             max_item, max_value, gain = (None, None), 0., 0.
-    
-            for v in self.V_available():
+            V_avail = self._V_available.copy()
+            for v in V_avail:
                 for i, available in enumerate(self.B_i): # over K item types 
                     if available != 0:
                         lookup_value = self.lookup_marginal(i, v)
@@ -299,19 +301,17 @@ class KStochasticGreedyIndividualSizeConstrained(KGreedyIndividualSizeConstraine
             print(f'{self.__class__.__name__} - Iteration {j}/{self.B_total}')
             R = []
 
+            max_item, max_value, gain = (None, None), 0., 0.
+
             while True: 
                 # add a single element to R
                 choices = [v for v in self.V_available() if v not in R]
+                if choices:
+                    choice = random.choice(choices)
+                    R.append(choice)
 
-                choice = random.choice(choices)
-                R.append(choice)
-
-
-                max_item, max_value, gain = (None, None), 0., 0.
-
-                # Find the maximum 
-                for v in R:
-                    for i, available in enumerate(self.B_i): # over K item types 
+                    v = R[-1]
+                    for i, available in enumerate(self.B_i): # over K item types
                         if available != 0:
                             lookup_value = self.lookup_marginal(i, v)
                             if lookup_value < gain:
@@ -321,8 +321,8 @@ class KStochasticGreedyIndividualSizeConstrained(KGreedyIndividualSizeConstraine
                             if gain > max_value:
                                 max_item, max_value = (i, v), gain
 
-                if max_item[0] is not None and len(R) >= self.subset_size_i(max_item[0]):
-                    # update V_available 
+                if max_item[0] is not None and len(R) >= self.subset_size_i(max_item[0]) or not choices:
+                    # update V_available
                     self._V_available.remove(max_item[1])
                     self.V[max_item[1]] = max_item[0]
                     self.S.append(max_item)
@@ -332,7 +332,6 @@ class KStochasticGreedyIndividualSizeConstrained(KGreedyIndividualSizeConstraine
                     self.B_i[max_item[0]] -= 1
 
                     break
-
 
         assert len(self.S) == self.B_total, "Budget must be used up" 
         

@@ -51,7 +51,7 @@ class ThresholdGreedyTotalSizeConstrained(ohsaka.KSubmodular):
         for v in self.V_available():
             # calculate the gain of placing item i on it
             for i in range(self.K): # over K item types 
-                gain = self.marginal_gain(i, v)
+                gain = self.marginal_gain(i, v, update_count=False)
                 if gain > max_gain:
                     max_gain = gain 
         return max_gain 
@@ -78,9 +78,9 @@ class ThresholdGreedyTotalSizeConstrained(ohsaka.KSubmodular):
         budget_exhausted = False  
 
         while self.threshold > self._min_threshold:
-            
 
-            for v in self.V_available():
+            V_avail = self._V_available.copy()
+            for v in V_avail:
                 for i in range(self.K):
                     # TODO: assume one location only allows one item  -- len(S) == len(U(S))
                     budget_exhausted = len(self.S) == self.B_total 
@@ -155,7 +155,7 @@ class ThresholdGreedyIndividualSizeConstrained(ThresholdGreedyTotalSizeConstrain
         List of supported indices(locations) by items of type i 
         """
 
-        return [ idx for idx, v in self.S if idx == i]
+        return [ v for idx, v in self.S if idx == i]
 
 
     def _calculate_min_threshold(self):
@@ -165,8 +165,9 @@ class ThresholdGreedyIndividualSizeConstrained(ThresholdGreedyTotalSizeConstrain
     def run(self):
         
         while self.threshold > self._min_threshold:
-            
-            for v in self.V_available():
+
+            V_avail = self._V_available.copy()
+            for v in V_avail:
                 for i, available in enumerate(self.B_i): # over K item types 
                     if available != 0:
                         lookup_value = self.lookup_marginal(i, v)

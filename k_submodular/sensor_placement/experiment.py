@@ -73,14 +73,13 @@ class Experiment:
 
 
     def value_function(self, seed_set):
-        seed_set = [self.location_maps[location_idx] for s, location_idx in seed_set]
-
         total_entropy = 0.
-        for i, entropy in enumerate(self.entropy_data):
-            total_entropy += sum([entropy[int(s)] for s in seed_set])
+
+        for sensor_idx, location_idx in seed_set:
+            mapped_location_idx = self.location_maps[location_idx]
+            total_entropy += self.entropy_data[sensor_idx][mapped_location_idx]
 
 
-        # Influences
         return total_entropy
 
 
