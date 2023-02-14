@@ -179,6 +179,7 @@ class KStochasticGreedyTotalSizeConstrained(KGreedyTotalSizeConstrained):
         )
 
         self.delta = delta
+        print(f'Using delta -- {self.delta}')
         self.B_i_copy = self.B_i.copy()
 
 
@@ -267,6 +268,7 @@ class KStochasticGreedyIndividualSizeConstrained(KGreedyIndividualSizeConstraine
         super().__init__(n, B_total, B_i, value_function)
 
         self.delta = delta
+        print(f'Using delta -- {self.delta}')
         self.B_total = sum(self.B_i)
         self.B_i_copy = B_i.copy()
 
