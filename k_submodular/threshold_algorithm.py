@@ -142,11 +142,12 @@ class ThresholdGreedyIndividualSizeConstrained(ThresholdGreedyTotalSizeConstrain
         )
         
         self._min_threshold = self._calculate_min_threshold()
+        print(f'Using initial min_threshold {self._min_threshold} with tolerance {self.tolerance}')
 
 
     @property
     def budget_exhausted(self):
-        return sum(self.B_i)
+        return sum(self.B_i) == self.B_total
 
 
     

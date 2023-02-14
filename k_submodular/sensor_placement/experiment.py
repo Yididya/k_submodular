@@ -59,7 +59,7 @@ class Experiment:
             self.algorithms = [
                 algorithm(self.n,
                     self.B_total,
-                    self.B_i,
+                    self.B_i.copy(),
                     self.value_function,
                     tolerance=t) for t in self.tolerance]
         else:
@@ -104,7 +104,7 @@ class Experiment:
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Experiment runner')
-    parser.add_argument('--mode', action='store', type=str, default='run', choices=['run', 'plot'])
+    parser.add_argument('--mode', action='store', type=str, default='plot', choices=['run', 'plot'])
     parser.add_argument('--B', action='store', type=int, default=None, nargs='+')
     parser.add_argument('--B_i', action='store', type=int, default=list(range(1, 11)), nargs='+')
     parser.add_argument('--tolerance', action='store', type=float, default=[0.1, 0.2], nargs='+')

@@ -103,7 +103,7 @@ class KSubmodular():
 
 
     def support(self):
-        return [idx for idx, v in enumerate(self.V) if v != -1] 
+        return [v for idx, v in enumerate(self.V) if v != -1]
 
     @abstractmethod
     def run(self): 
@@ -340,7 +340,7 @@ class KStochasticGreedyIndividualSizeConstrained(KGreedyIndividualSizeConstraine
 
 if __name__ == '__main__':
     n = 10 
-    B_i = [2, 3, 4]
+    B_i = [3, 1, 1]
     B_total = 5
 
     value_function = value_function_template(n, B_i)
