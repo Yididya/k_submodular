@@ -169,7 +169,7 @@ class KStochasticGreedyTotalSizeConstrained(KGreedyTotalSizeConstrained):
                 B_total, 
                 B_i, 
                 value_function,
-                delta=0.5):
+                delta=0.1):
  
         super().__init__(
             n,
@@ -179,6 +179,7 @@ class KStochasticGreedyTotalSizeConstrained(KGreedyTotalSizeConstrained):
         )
 
         self.delta = delta
+        self.B_i_copy = self.B_i.copy()
 
 
     @property
@@ -215,6 +216,7 @@ class KGreedyIndividualSizeConstrained(KSubmodular):
         )
 
         self.B_total = sum(self.B_i)
+        self.B_i_copy = B_i.copy()
 
 
     def run(self):
@@ -260,10 +262,13 @@ class KStochasticGreedyIndividualSizeConstrained(KGreedyIndividualSizeConstraine
             B_total, 
             B_i, 
             value_function,
-            delta=0.5):
+            delta=0.1):
 
         super().__init__(n, B_total, B_i, value_function)
-        self.delta = delta 
+
+        self.delta = delta
+        self.B_total = sum(self.B_i)
+        self.B_i_copy = B_i.copy()
 
     def support_i(self, i):
         """
@@ -280,8 +285,8 @@ class KStochasticGreedyIndividualSizeConstrained(KGreedyIndividualSizeConstraine
         ith_support = len(self.support_i(i))
 
         return min (
-            int((self.n - ith_support) / (self.B_i[i] - len(self.support_i)) * np.log(self.B_total / self.delta)),
-            n
+            int((self.n - ith_support) / (self.B_i_copy[i] - ith_support) * np.log(self.B_total / self.delta)),
+            self.n
         )
 
 
@@ -294,11 +299,13 @@ class KStochasticGreedyIndividualSizeConstrained(KGreedyIndividualSizeConstraine
 
             while True: 
                 # add a single element to R
-                choice = random.choice([v for v in self.V_available() if v not in R])
+                choices = [v for v in self.V_available() if v not in R]
+
+                choice = random.choice(choices)
                 R.append(choice)
 
 
-                max_item, max_value, gain = [], (None, None), 0., 0.
+                max_item, max_value, gain = (None, None), 0., 0.
 
                 # Find the maximum 
                 for v in R:
@@ -311,7 +318,7 @@ class KStochasticGreedyIndividualSizeConstrained(KGreedyIndividualSizeConstraine
                             gain = self.marginal_gain(i, v)
                             if gain > max_value:
                                 max_item, max_value = (i, v), gain
-                
+
                 if max_item[0] is not None and len(R) >= self.subset_size_i(max_item[0]):
                     # update V_available 
                     self._V_available.remove(max_item[1])
@@ -323,7 +330,7 @@ class KStochasticGreedyIndividualSizeConstrained(KGreedyIndividualSizeConstraine
                     self.B_i[max_item[0]] -= 1
 
                     break
-                
+
 
         assert len(self.S) == self.B_total, "Budget must be used up" 
         

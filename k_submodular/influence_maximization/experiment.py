@@ -175,7 +175,7 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Experiment runner')
     parser.add_argument('--mode', action='store', type=str, default='run', choices=['run', 'plot'])
-    parser.add_argument('--B', action='store', type=int, default=[2, 3], nargs='+')
+    parser.add_argument('--B', action='store', type=int, default=[5, 10, 15, 20], nargs='+')
     parser.add_argument('--n-jobs', action='store', type=int, default=20)
     parser.add_argument('--tolerance', action='store', type=float, default=[0.1, 0.2], nargs='+')
     parser.add_argument('--output', action='store', type=str, required=False)
