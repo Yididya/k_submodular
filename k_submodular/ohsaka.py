@@ -133,7 +133,7 @@ class KGreedyTotalSizeConstrained(KSubmodular):
         # until the budget is exhausted 
         for j in range(self.B_total):
             print(f'{self.__class__.__name__} - Iteration {j}/{self.B_total}')
-            max_item, max_value = (None, None), 0.
+            max_item, max_value = (None, None), -np.inf
             V_avail = self.V_available().copy()
             for v in V_avail:
                 for i in range(self.K): # over K item types
@@ -162,7 +162,7 @@ class KGreedyTotalSizeConstrained(KSubmodular):
 
 
 
-class KStochasticGreedyTotalSizeConstrained(KGreedyTotalSizeConstrained):
+class KStochasticGreedyTotalSizeConstrained(KSubmodular):
     name = 'k-Stochastic-Greedy-TS'
 
     def __init__(self, 
@@ -185,16 +185,50 @@ class KStochasticGreedyTotalSizeConstrained(KGreedyTotalSizeConstrained):
 
 
 
-    def V_available(self):
-        # calculate subset size
-        j = len(self.S) + 1
-        subset_size =  min(
-            int((self.n - j + 1) / (self.B_total - j + 1) * np.log(self.B_total / self.delta)),
-            self.n
-        )
 
-        return random.choices(self._V_available, k=subset_size)
-    
+    def run(self):
+
+        # until the budget is exhausted
+        for j in range(self.B_total):
+            print(f'{self.__class__.__name__} - Iteration {j}/{self.B_total}')
+            max_item, max_value = (None, None), -np.inf
+
+            # compute random V_available
+            V_avail = self._V_available.copy()
+            subset_size = min(
+                int((self.n - j + 1) / (self.B_total - j + 1) * np.log(self.B_total / self.delta)),
+                self.n
+            )
+
+            V_avail = random.choices(V_avail, k=subset_size)
+
+            for v in V_avail:
+                for i in range(self.K):  # over K item types
+                    lookup_value = self.lookup_marginal(i, v)
+                    if lookup_value < max_value:
+                        # don't bother
+                        continue
+
+                    gain = self.marginal_gain(i, v)
+                    if gain > max_value:
+                        max_item, max_value = (i, v), gain
+
+            # update V_available
+            if max_item[0] is not None and max_item[1] is not None:
+                print(f'Selected {max_item}')
+                self._V_available.remove(max_item[1])
+                self.V[max_item[1]] = max_item[0]
+                self.S.append(max_item)
+
+                self.current_value += max_value
+
+        print(self.S)
+        print(f'Final value {self.current_value}')
+
+
+
+
+
 
 
 class KGreedyIndividualSizeConstrained(KSubmodular):
@@ -223,7 +257,7 @@ class KGreedyIndividualSizeConstrained(KSubmodular):
         # until the budget is exhausted 
         for j in range(self.B_total):
             print(f'{self.__class__.name} - Iteration {j}/{self.B_total}')
-            max_item, max_value = (None, None), 0.
+            max_item, max_value = (None, None), -np.inf
             V_avail = self._V_available.copy()
             for v in V_avail:
                 for i, available in enumerate(self.B_i): # over K item types 
@@ -296,7 +330,7 @@ class KStochasticGreedyIndividualSizeConstrained(KGreedyIndividualSizeConstraine
             print(f'{self.__class__.__name__} - Iteration {j}/{self.B_total}')
             R = []
 
-            max_item, max_value = (None, None), 0.
+            max_item, max_value = (None, None), -np.inf
 
             while True: 
                 # add a single element to R
@@ -340,8 +374,8 @@ if __name__ == '__main__':
 
     value_function = value_function_template(n, B_i)
 
-    # experiment = KStochasticGreedyTotalSizeConstrained(n, B_total=B_total, B_i = B_i, value_function=value_function)
-    experiment = KGreedyIndividualSizeConstrained(n, B_total=B_total, B_i = B_i, value_function=value_function)
+    experiment = KStochasticGreedyTotalSizeConstrained(n, B_total=B_total, B_i = B_i, value_function=value_function)
+    # experiment = KGreedyIndividualSizeConstrained(n, B_total=B_total, B_i = B_i, value_function=value_function)
 
     experiment.run()
     print(experiment)
