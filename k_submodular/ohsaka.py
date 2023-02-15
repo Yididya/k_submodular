@@ -73,7 +73,7 @@ class KSubmodular():
 
 
     def update_marginal(self, i, v, value):
-        self.marginal_lookup_table[i][v] = value
+        self.marginal_lookup_table[i][v] = max(value, 0.)
 
 
     @property
