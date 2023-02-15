@@ -133,12 +133,12 @@ class KGreedyTotalSizeConstrained(KSubmodular):
         # until the budget is exhausted 
         for j in range(self.B_total):
             print(f'{self.__class__.__name__} - Iteration {j}/{self.B_total}')
-            max_item, max_value, gain = (None, None), 0., 0.
+            max_item, max_value = (None, None), 0.
             V_avail = self._V_available.copy()
             for v in V_avail:
                 for i in range(self.K): # over K item types
                     lookup_value = self.lookup_marginal(i, v)
-                    if lookup_value < gain:
+                    if lookup_value < max_value:
                         # don't bother
                         continue
 
@@ -153,7 +153,7 @@ class KGreedyTotalSizeConstrained(KSubmodular):
                 self.V[max_item[1]] = max_item[0]
                 self.S.append(max_item)
 
-                self.current_value += gain
+                self.current_value += max_value
 
         assert len(self.S) == self.B_total, "Budget must be used up" 
         
@@ -227,25 +227,26 @@ class KGreedyIndividualSizeConstrained(KSubmodular):
         # until the budget is exhausted 
         for j in range(self.B_total):
             print(f'{self.__class__.name} - Iteration {j}/{self.B_total}')
-            max_item, max_value, gain = (None, None), 0., 0.
+            max_item, max_value = (None, None), 0.
             V_avail = self._V_available.copy()
             for v in V_avail:
                 for i, available in enumerate(self.B_i): # over K item types 
                     if available != 0:
                         lookup_value = self.lookup_marginal(i, v)
-                        if lookup_value < gain:
+                        if lookup_value < max_value:
                             # don't bother
                             continue
                         gain = self.marginal_gain(i, v)
                         if gain > max_value:
                             max_item, max_value = (i, v), gain
+
                 
             # update V_available 
             if max_item[0] is not None:
                 self._V_available.remove(max_item[1])
                 self.V[max_item[1]] = max_item[0]
                 self.S.append(max_item)
-                self.current_value += gain
+                self.current_value += max_value
 
                 # Decrement the value of B_i
                 self.B_i[max_item[0]] -= 1
@@ -301,11 +302,12 @@ class KStochasticGreedyIndividualSizeConstrained(KGreedyIndividualSizeConstraine
             print(f'{self.__class__.__name__} - Iteration {j}/{self.B_total}')
             R = []
 
-            max_item, max_value, gain = (None, None), 0., 0.
+            max_item, max_value = (None, None), 0.
 
             while True: 
                 # add a single element to R
-                choices = [v for v in self.V_available() if v not in R]
+                V_avail = self._V_available.copy()
+                choices = [v for v in V_avail if v not in R]
                 if choices:
                     choice = random.choice(choices)
                     R.append(choice)
@@ -314,7 +316,7 @@ class KStochasticGreedyIndividualSizeConstrained(KGreedyIndividualSizeConstraine
                     for i, available in enumerate(self.B_i): # over K item types
                         if available != 0:
                             lookup_value = self.lookup_marginal(i, v)
-                            if lookup_value < gain:
+                            if lookup_value < max_value:
                                 # don't bother
                                 continue
                             gain = self.marginal_gain(i, v)
@@ -326,7 +328,7 @@ class KStochasticGreedyIndividualSizeConstrained(KGreedyIndividualSizeConstraine
                     self._V_available.remove(max_item[1])
                     self.V[max_item[1]] = max_item[0]
                     self.S.append(max_item)
-                    self.current_value += gain
+                    self.current_value += max_value
 
                     # Decrement the value of B_i
                     self.B_i[max_item[0]] -= 1

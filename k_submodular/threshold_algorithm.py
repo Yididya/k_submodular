@@ -169,7 +169,8 @@ class ThresholdGreedyIndividualSizeConstrained(ThresholdGreedyTotalSizeConstrain
 
             V_avail = self._V_available.copy()
             for v in V_avail:
-                for i, available in enumerate(self.B_i): # over K item types 
+                B_i_ = self.B_i.copy()
+                for i, available in enumerate(B_i_): # over K item types
                     if available != 0:
                         lookup_value = self.lookup_marginal(i, v)
                         if lookup_value < self.threshold:
