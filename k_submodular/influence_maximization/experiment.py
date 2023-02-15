@@ -102,7 +102,7 @@ class Experiment:
     def _initialize_weighted_networks(self):
 
         G = networkx.DiGraph()
-        users = self.friends_dataset.users
+        users = self.user_ids
 
         for u in users:
             G.add_node(u)
