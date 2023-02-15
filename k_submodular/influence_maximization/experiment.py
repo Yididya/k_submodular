@@ -31,6 +31,9 @@ class FriendDataset:
     @property
     def users(self):
         return list(self.data['user_id'].unique())
+    @property
+    def all_users(self):
+        return list(set(list(self.data['user_id'].unique()) + list(self.data['friend_id'].unique())))
 
     def user_friends(self, user_id):
         return self.data[self.data['user_id'] == user_id ]['friend_id'].unique()
@@ -60,7 +63,7 @@ class Experiment:
         self.action_log_file = action_log_file
         self.friends_dataset = FriendDataset(friend_list_file)
 
-        self.user_ids = self.friends_dataset.users
+        self.user_ids = self.friends_dataset.all_users
         print(f'Using {len(self.user_ids)} users')
 
 
@@ -102,12 +105,10 @@ class Experiment:
     def _initialize_weighted_networks(self):
 
         G = networkx.DiGraph()
-        users = self.user_ids
+        users = self.friends_dataset.users
 
         for u in users:
-            G.add_node(u)
             friends = self.friends_dataset.user_friends(u)
-
             G.add_edges_from([(u, f) for f in friends])
 
         # Add weight to the network
