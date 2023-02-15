@@ -47,8 +47,9 @@ class ThresholdGreedyTotalSizeConstrained(ohsaka.KSubmodular):
         """
 
         max_gain = 0.
-        # for each available positions 
-        for v in self.V_available():
+        # for each available positions
+        V_avail = self._V_available.copy()
+        for v in V_avail:
             # calculate the gain of placing item i on it
             for i in range(self.K): # over K item types 
                 gain = self.marginal_gain(i, v, update_count=False)

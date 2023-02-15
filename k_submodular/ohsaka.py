@@ -81,9 +81,6 @@ class KSubmodular():
         return len(self.B_i)    
 
 
-    def V_available(self):
-        return self._V_available
-
 
     def marginal_gain(self, i, v, update_count=True):
         """
@@ -134,7 +131,7 @@ class KGreedyTotalSizeConstrained(KSubmodular):
         for j in range(self.B_total):
             print(f'{self.__class__.__name__} - Iteration {j}/{self.B_total}')
             max_item, max_value = (None, None), -np.inf
-            V_avail = self.V_available().copy()
+            V_avail = self._V_available.copy()
             for v in V_avail:
                 for i in range(self.K): # over K item types
                     lookup_value = self.lookup_marginal(i, v)
@@ -155,7 +152,7 @@ class KGreedyTotalSizeConstrained(KSubmodular):
                 self.S.append(max_item)
 
                 self.current_value += max_value
-
+        assert len(self.S) == self.B_total, "Budget must be used up"
         print(self.S)
         print(f'Final value {self.current_value}')
         
@@ -181,7 +178,6 @@ class KStochasticGreedyTotalSizeConstrained(KSubmodular):
 
         self.delta = delta
         print(f'Using delta -- {self.delta}')
-        self.B_i_copy = self.B_i.copy()
 
 
 
@@ -222,6 +218,7 @@ class KStochasticGreedyTotalSizeConstrained(KSubmodular):
 
                 self.current_value += max_value
 
+        assert len(self.S) == self.B_total, "Budget must be used up"
         print(self.S)
         print(f'Final value {self.current_value}')
 
@@ -249,7 +246,7 @@ class KGreedyIndividualSizeConstrained(KSubmodular):
         )
 
         self.B_total = sum(self.B_i)
-        self.B_i_copy = B_i.copy()
+        self.B_i_remaining = self.B_i.copy()
 
 
     def run(self):
@@ -260,8 +257,8 @@ class KGreedyIndividualSizeConstrained(KSubmodular):
             max_item, max_value = (None, None), -np.inf
             V_avail = self._V_available.copy()
             for v in V_avail:
-                for i, available in enumerate(self.B_i): # over K item types 
-                    if available != 0:
+                for i, available in enumerate(self.B_i_remaining): # over K item types
+                    if available > 0:
                         lookup_value = self.lookup_marginal(i, v)
                         if lookup_value < max_value:
                             # don't bother
@@ -279,8 +276,8 @@ class KGreedyIndividualSizeConstrained(KSubmodular):
                 self.current_value += max_value
 
                 # Decrement the value of B_i
-                self.B_i[max_item[0]] -= 1
-
+                self.B_i_remaining[max_item[0]] -= 1
+        assert len(self.S) == self.B_total, "Budget must be used up"
         print(self.S)
         print(f'Final value {self.current_value}')
 
@@ -363,7 +360,7 @@ class KStochasticGreedyIndividualSizeConstrained(KGreedyIndividualSizeConstraine
 
                     break
 
-
+        assert len(self.S) == self.B_total, "Budget must be used up"
         print(self.S)
         print(f'Final value {self.current_value}')
 
