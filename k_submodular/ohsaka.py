@@ -134,7 +134,7 @@ class KGreedyTotalSizeConstrained(KSubmodular):
         for j in range(self.B_total):
             print(f'{self.__class__.__name__} - Iteration {j}/{self.B_total}')
             max_item, max_value = (None, None), 0.
-            V_avail = self._V_available.copy()
+            V_avail = self.V_available().copy()
             for v in V_avail:
                 for i in range(self.K): # over K item types
                     lookup_value = self.lookup_marginal(i, v)
@@ -143,20 +143,19 @@ class KGreedyTotalSizeConstrained(KSubmodular):
                         continue
 
                     gain = self.marginal_gain(i, v)
-
                     if gain > max_value:
                         max_item, max_value = (i, v), gain
+
                 
             # update V_available 
             if max_item[0] is not None and max_item[1] is not None:
+                print(f'Selected {max_item}')
                 self._V_available.remove(max_item[1])
                 self.V[max_item[1]] = max_item[0]
                 self.S.append(max_item)
 
                 self.current_value += max_value
 
-        assert len(self.S) == self.B_total, "Budget must be used up" 
-        
         print(self.S)
         print(f'Final value {self.current_value}')
         
@@ -185,19 +184,16 @@ class KStochasticGreedyTotalSizeConstrained(KGreedyTotalSizeConstrained):
         self.B_i_copy = self.B_i.copy()
 
 
-    @property
-    def subset_size(self):
-        """
-        todo log base 
-        """
-        j = len(self.S) + 1 
-        return min(
-            int((self.n - j + 1)/ (self.B_total - j + 1 ) * np.log(self.B_total / self.delta)),
+
+    def V_available(self):
+        # calculate subset size
+        j = len(self.S) + 1
+        subset_size =  min(
+            int((self.n - j + 1) / (self.B_total - j + 1) * np.log(self.B_total / self.delta)),
             self.n
         )
 
-    def V_available(self):
-        return random.choices(self._V_available, k=self.subset_size)
+        return random.choices(self._V_available, k=subset_size)
     
 
 
@@ -251,8 +247,6 @@ class KGreedyIndividualSizeConstrained(KSubmodular):
                 # Decrement the value of B_i
                 self.B_i[max_item[0]] -= 1
 
-        assert len(self.S) == self.B_total, "Budget must be used up" 
-        
         print(self.S)
         print(f'Final value {self.current_value}')
 
@@ -335,8 +329,7 @@ class KStochasticGreedyIndividualSizeConstrained(KGreedyIndividualSizeConstraine
 
                     break
 
-        assert len(self.S) == self.B_total, "Budget must be used up" 
-        
+
         print(self.S)
         print(f'Final value {self.current_value}')
 
