@@ -342,8 +342,8 @@ class KStochasticGreedyIndividualSizeConstrained(KGreedyIndividualSizeConstraine
 
 if __name__ == '__main__':
     n = 10 
-    B_i = [3, 1, 1]
-    B_total = 5
+    B_i = [3, 2, 2]
+    B_total = sum(B_i)
 
     value_function = value_function_template(n, B_i)
 
