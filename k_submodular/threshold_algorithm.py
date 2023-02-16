@@ -144,11 +144,11 @@ class ThresholdGreedyIndividualSizeConstrained(ThresholdGreedyTotalSizeConstrain
         
         self._min_threshold = self._calculate_min_threshold()
         print(f'Using initial min_threshold {self._min_threshold} with tolerance {self.tolerance}')
-
+        self.B_i_remaining = self.B_i.copy()
 
     @property
     def budget_exhausted(self):
-        return sum(self.B_i) == self.B_total
+        return sum(self.B_i_remaining) == 0
 
 
     
@@ -170,8 +170,8 @@ class ThresholdGreedyIndividualSizeConstrained(ThresholdGreedyTotalSizeConstrain
 
             V_avail = self._V_available.copy()
             for v in V_avail:
-                B_i_ = self.B_i.copy()
-                for i, available in enumerate(B_i_): # over K item types
+                B_i_remaining = self.B_i_remaining.copy()
+                for i, available in enumerate(B_i_remaining): # over K item types
                     if available != 0:
                         lookup_value = self.lookup_marginal(i, v)
                         if lookup_value < self.threshold:
@@ -186,7 +186,7 @@ class ThresholdGreedyIndividualSizeConstrained(ThresholdGreedyTotalSizeConstrain
                             self.current_value += gain
                             
                             # Decrement the value of B_i
-                            self.B_i[i] -= 1
+                            self.B_i_remaining[i] -= 1
                             print(f'{self.__class__.__name__} - Added element idx {v}/ {self.B_total}')
                             break
 

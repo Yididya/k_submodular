@@ -298,14 +298,15 @@ class KStochasticGreedyIndividualSizeConstrained(KGreedyIndividualSizeConstraine
         self.delta = delta
         print(f'Using delta -- {self.delta}')
         self.B_total = sum(self.B_i)
-        self.B_i_copy = B_i.copy()
+        self.B_i_remaining = self.B_i.copy()
+
 
     def support_i(self, i):
         """
         List of supported indices(locations) by items of type i 
         """
 
-        return [ idx for idx, v in self.S if idx == i]
+        return [ v for idx, v in self.S if idx == i]
     
     def subset_size_i(self, i):
         """
@@ -315,7 +316,7 @@ class KStochasticGreedyIndividualSizeConstrained(KGreedyIndividualSizeConstraine
         ith_support = len(self.support_i(i))
 
         return min (
-            int((self.n - ith_support) / (self.B_i_copy[i] - ith_support) * np.log(self.B_total / self.delta)),
+            int((self.n - ith_support) / (self.B_i[i] - ith_support) * np.log(self.B_total / self.delta)),
             self.n
         )
 
@@ -338,7 +339,7 @@ class KStochasticGreedyIndividualSizeConstrained(KGreedyIndividualSizeConstraine
                     R.append(choice)
 
                     v = R[-1]
-                    for i, available in enumerate(self.B_i): # over K item types
+                    for i, available in enumerate(self.B_i_remaining): # over K item types
                         if available != 0:
                             lookup_value = self.lookup_marginal(i, v)
                             if lookup_value < max_value:
@@ -356,7 +357,7 @@ class KStochasticGreedyIndividualSizeConstrained(KGreedyIndividualSizeConstraine
                     self.current_value += max_value
 
                     # Decrement the value of B_i
-                    self.B_i[max_item[0]] -= 1
+                    self.B_i_remaining[max_item[0]] -= 1
 
                     break
 
