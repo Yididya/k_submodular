@@ -89,7 +89,6 @@ class KSubmodular():
         self.marginal_lookup_table = np.ones((self.K, self.n)) * np.inf
 
     def pair_pool(self, V_available=None):
-        print('Recalculating pair pool')
         pool = []
 
         V_avail = V_available or self._V_available
@@ -130,6 +129,7 @@ class KSubmodular():
         if update_count:
             self.update_marginal(i, v, value)
 
+        print(f'Marginal gain: {value}')
         return value
 
 
@@ -217,7 +217,6 @@ class KStochasticGreedyTotalSizeConstrained(KSubmodular):
 
 
 
-
     def run(self):
 
         # until the budget is exhausted
@@ -289,7 +288,6 @@ class KGreedyIndividualSizeConstrained(KSubmodular):
         self.B_i_remaining = self.B_i.copy()
 
     def pair_pool(self, V_available=None):
-        print('Recalculating pair pool')
         pool = []
 
         V_avail = V_available or self._V_available
@@ -426,7 +424,7 @@ class KStochasticGreedyIndividualSizeConstrained(KGreedyIndividualSizeConstraine
 
 if __name__ == '__main__':
     n = 10 
-    B_i = [3, 2, 2]
+    B_i = [2, 3, 4]
     B_total = sum(B_i)
 
     value_function = value_function_template(n, B_i)
@@ -441,6 +439,7 @@ if __name__ == '__main__':
     experiment = KStochasticGreedyTotalSizeConstrained(n, B_total=B_total, B_i = B_i, value_function=value_function)
 
     experiment.run()
+    assert experiment.n_evaluations <= (n * len(B_i) + B_total - 1), 'Lazy evaluation sanity check'
     print(f'Number of evaluations {experiment.n_evaluations }')
 
 
@@ -450,7 +449,7 @@ if __name__ == '__main__':
     print(f'Number of evaluations {experiment.n_evaluations}')
     assert experiment.n_evaluations <= (n * len(B_i) + B_total - 1), 'Lazy evaluation sanity check'
 
-    # individual greedy
-    experiment = KStochasticGreedyIndividualSizeConstrained(n, B_total=B_total, B_i=B_i, value_function=value_function)
-    experiment.run()
-    print(f'Number of evaluations {experiment.n_evaluations}')
+    # # individual greedy
+    # experiment = KStochasticGreedyIndividualSizeConstrained(n, B_total=B_total, B_i=B_i, value_function=value_function)
+    # experiment.run()
+    # print(f'Number of evaluations {experiment.n_evaluations}')

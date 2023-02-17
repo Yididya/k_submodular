@@ -1,5 +1,6 @@
 import numpy as np
 import ohsaka
+import heapq as hq
 
 
 
@@ -80,32 +81,30 @@ class ThresholdGreedyTotalSizeConstrained(ohsaka.KSubmodular):
 
         while self.threshold > self._min_threshold:
 
-            V_avail = self._V_available.copy()
-            for v in V_avail:
-                for i in range(self.K):
-                    # TODO: assume one location only allows one item  -- len(S) == len(U(S))
-                    budget_exhausted = len(self.S) == self.B_total 
-                    
-                    if not budget_exhausted:
-                        # check table, make sure the saved marginal gain is >= current threshold
-                        # if yes, evaluate and update
-                        lookup_value = self.lookup_marginal(i, v)
-                        if lookup_value < self.threshold:
-                            # don't bother
-                            continue
-                        gain = self.marginal_gain(i, v)
-                        if gain >= self.threshold:
-                            # add (item, index) pair to list and 
-                            self._V_available.remove(v)
-                            self.V[v] = i
-                            self.S.append((i, v))
-                            self.current_value += gain
-                            print(f'{self.__class__.__name__} - Added element idx {v}/ {self.B_total}')
-                            break
+            pool = self.pair_pool()
 
-                    else:
+            for _ in range(len(pool)):
+                # get an element out of the loop
+                item = hq.heappop(pool)
+                i, v = item.index
+                budget_exhausted = len(self.S) == self.B_total
+
+                if not budget_exhausted and self.V[v] == -1:  # budget available & item is still empty
+                    # check table, make sure the saved marginal gain is >= current threshold
+                    # if yes, evaluate and update
+                    lookup_value = self.lookup_marginal(i, v)
+                    if lookup_value < self.threshold:
+                        # don't bother
                         break
-                        
+                    gain = self.marginal_gain(i, v)
+                    if gain >= self.threshold:
+                        # add (item, index) pair to list and
+                        self._V_available.remove(v)
+                        self.V[v] = i
+                        self.S.append((i, v))
+                        self.current_value += gain
+                        print(f'{self.__class__.__name__} - Added element idx {v}/ {self.B_total}')
+
             if budget_exhausted:
                 break
                     
@@ -164,34 +163,52 @@ class ThresholdGreedyIndividualSizeConstrained(ThresholdGreedyTotalSizeConstrain
         return self.tolerance * self._d * (1 - self.tolerance) / (3 * self.B_total)
 
 
+    def pair_pool(self, V_available=None):
+        pool = []
+
+        V_avail = V_available or self._V_available
+
+        # initialize heap with available elements
+        for i, available in enumerate(self.B_i_remaining):
+            if available > 0:
+                for v in V_avail:
+                    pool.append(ohsaka.ItemIndexPair((i, v), marginal_gain=self.marginal_lookup_table[i][v]))
+
+        hq.heapify(pool)
+        return pool
+
     def run(self):
         
         while self.threshold > self._min_threshold:
 
-            V_avail = self._V_available.copy()
-            for v in V_avail:
-                B_i_remaining = self.B_i_remaining.copy()
-                for i, available in enumerate(B_i_remaining): # over K item types
-                    if available != 0:
-                        lookup_value = self.lookup_marginal(i, v)
-                        if lookup_value < self.threshold:
-                            # don't bother
-                            continue
-                        gain = self.marginal_gain(i, v)
-                        if gain >= self.threshold:
-                            # add (item, index) pair to list and 
-                            self._V_available.remove(v)
-                            self.V[v] = i
-                            self.S.append((i, v))
-                            self.current_value += gain
-                            
-                            # Decrement the value of B_i
-                            self.B_i_remaining[i] -= 1
-                            print(f'{self.__class__.__name__} - Added element idx {v}/ {self.B_total}')
-                            break
+            pool = self.pair_pool()
 
-           
-                        
+            for _ in range(len(pool)):
+                # get an element out of the loop
+                item = hq.heappop(pool)
+                i, v = item.index
+                budget_exhausted = len(self.S) == self.B_total
+
+                if not budget_exhausted and self.V[v] == -1:  # budget available & item is still empty
+                    # check table, make sure the saved marginal gain is >= current threshold
+                    # if yes, evaluate and update
+                    lookup_value = self.lookup_marginal(i, v)
+                    if lookup_value < self.threshold:
+                        # don't bother
+                        break
+                    gain = self.marginal_gain(i, v)
+                    if gain >= self.threshold:
+                        # add (item, index) pair to list and
+                        self._V_available.remove(v)
+                        self.V[v] = i
+                        self.S.append((i, v))
+                        self.current_value += gain
+
+                        # Decrement the value of B_i
+                        self.B_i_remaining[i] -= 1
+                        print(f'{self.__class__.__name__} - Added element idx {v}/ {self.B_total}')
+
+
           
             # update threshold 
             self.threshold = (1 - self.tolerance) * self.threshold
@@ -204,8 +221,7 @@ class ThresholdGreedyIndividualSizeConstrained(ThresholdGreedyTotalSizeConstrain
         print(self.S)
         print(f'Final value {self.current_value}')
 
-        return 
-
+        return
 
 
 
@@ -235,12 +251,15 @@ def value_function_template(n, B_i):
 if __name__ == '__main__':
     n = 10 
     B_i = [2, 3, 4]
-    B_total = 5
+    B_total = sum(B_i)
 
     value_function = value_function_template(n, B_i)
 
-    experiment = ThresholdGreedyTotalSizeConstrained(n, B_total=B_total, B_i = B_i, value_function=value_function, tolerance=0.4)
-    # experiment = ThresholdGreedyIndividualSizeConstrained(n, B_total=B_total, B_i = B_i, value_function=value_function, tolerance=0.4)
-
+    experiment = ThresholdGreedyTotalSizeConstrained(n, B_total=B_total, B_i = B_i, value_function=value_function, tolerance=0.1)
     experiment.run()
-    print(experiment)
+    print(f'Number of evaluations {experiment.n_evaluations}')
+
+    # individual size
+    experiment = ThresholdGreedyIndividualSizeConstrained(n, B_total=B_total, B_i = B_i, value_function=value_function, tolerance=0.4)
+    experiment.run()
+    print(f'Number of evaluations {experiment.n_evaluations}')
