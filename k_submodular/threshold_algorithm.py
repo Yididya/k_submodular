@@ -26,9 +26,6 @@ class ThresholdGreedyTotalSizeConstrained(ohsaka.KSubmodular):
         )
 
         self.tolerance = tolerance
-        # self._d = self._calculate_d()
-        # self._min_threshold = self._calculate_min_threshold()
-        # self.threshold = self._d
 
     @property
     def tolerance(self):
@@ -139,7 +136,7 @@ class ThresholdGreedyTotalSizeConstrained(ohsaka.KSubmodular):
 
 
 
-class ThresholdGreedyIndividualSizeConstrained(ThresholdGreedyTotalSizeConstrained):
+class ThresholdGreedyIndividualSizeConstrained(ohsaka.KSubmodular):
     name = "Threshold-Greedy-IS"
 
     def __init__(self, 
@@ -156,13 +153,38 @@ class ThresholdGreedyIndividualSizeConstrained(ThresholdGreedyTotalSizeConstrain
             n,
             B_total,
             B_i,
-            value_function,
-            tolerance=tolerance
+            value_function
         )
         
         self._min_threshold = self._calculate_min_threshold()
-        print(f'Using initial min_threshold {self._min_threshold} with tolerance {self.tolerance}')
-        self.B_i_remaining = self.B_i.copy()
+        self.threshold = self._d
+
+    def _calculate_d(self):
+        """
+        Finding the maximum value of the function
+        """
+
+        max_item, max_gain = (None, None), 0.
+        # for each available positions
+        V_avail = self._V_available.copy()
+        for v in V_avail:
+            # calculate the gain of placing item i on it
+            for i in range(self.K):  # over K item types
+                if self.B_i_remaining[i] > 0:
+                    gain = self.marginal_gain(i, v)
+                    if gain > max_gain:
+                        max_gain = gain
+                        max_item = (i, v)
+
+        # add the element to the initial set S
+        if max_item[0] is not None:
+            self._V_available.remove(max_item[1])
+            self.V[max_item[1]] = max_item[0]
+            self.S.append(max_item)
+            self.current_value += max_gain
+            self.B_i_remaining[max_item[0]] -= 1
+
+        return max_gain
 
     @property
     def budget_exhausted(self):
@@ -208,7 +230,7 @@ class ThresholdGreedyIndividualSizeConstrained(ThresholdGreedyTotalSizeConstrain
                 i, v = item.index
                 budget_exhausted = len(self.S) == self.B_total
 
-                if not budget_exhausted and self.V[v] == -1:  # budget available & item is still empty
+                if not budget_exhausted and self.B_i_remaining[i] > 1 and self.V[v] == -1:  # budget available & item is still empty
                     # check table, make sure the saved marginal gain is >= current threshold
                     # if yes, evaluate and update
                     lookup_value = self.lookup_marginal(i, v)
@@ -235,8 +257,23 @@ class ThresholdGreedyIndividualSizeConstrained(ThresholdGreedyTotalSizeConstrain
             # check on budget 
             if self.budget_exhausted:
                 break
-                
-        
+
+        # pad remaining values
+        pool = self.pair_pool()
+        remaining_count = self.B_total - len(self.S)
+        while remaining_count > 0 and len(pool) > 0:
+            # get an element out of the loop
+            # check availability of v
+            item = hq.heappop(pool)
+            i, v = item.index
+            if self.V[v] == -1 and self.B_i_remaining[i] > 0:
+                print('Padding more items ')
+                self.V[v] = i
+                self.S.append(item.index)
+                remaining_count -= 1
+                self.B_i_remaining[i] -= 1
+
+
         print(self.S)
         print(f'Final value {self.current_value}')
 
