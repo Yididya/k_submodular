@@ -45,7 +45,6 @@ def create_K_networks(network, K):
 
 
     K_networks = [network.copy() for i in range(K)]
-    directed_network = network.copy()
 
     for u, v in network.edges:
 
@@ -168,7 +167,7 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Experiment runner')
     parser.add_argument('--mode', action='store', type=str, default='run', choices=['run', 'plot'])
-    parser.add_argument('--B', action='store', type=int, default=[ 2, 3, 4 ], nargs='+')
+    parser.add_argument('--B', action='store', type=int, default=[ 2, 4, 6, 8 ], nargs='+')
     parser.add_argument('--n-jobs', action='store', type=int, default=10)
     parser.add_argument('--tolerance', action='store', type=float, default=[0.1, 0.2], nargs='+') # TODO; update this
     parser.add_argument('--output', action='store', type=str, required=False)
@@ -225,6 +224,9 @@ if __name__ == '__main__':
                 if 'Threshold' in alg.__name__:
                     with open(f'{output_dir}/{alg.__name__}__{B_total}_{tolerance_vals[0]}.pkl', 'wb') as f:
                         pickle.dump(exp.results, f)
+                else:
+                    with open(f'{output_dir}/{alg.__name__}__{B_total}_.pkl', 'wb') as f:
+                        pickle.dump(exp.results, f)
 
     elif mode == 'plot':
         # load the files
@@ -255,7 +257,7 @@ if __name__ == '__main__':
                         with open(f'{output_dir}/{alg.__name__}__{B_total}_{t_val}.pkl', 'rb') as f:
                             results.extend(pickle.load(f))
 
-                if type(results) == dict: results = [results]
+                # if type(results) == dict: results = [results]
 
                 for i, r in enumerate(results):
                     if 'Threshold' in alg.__name__:
