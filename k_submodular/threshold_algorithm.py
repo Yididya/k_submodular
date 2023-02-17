@@ -47,15 +47,24 @@ class ThresholdGreedyTotalSizeConstrained(ohsaka.KSubmodular):
         Finding the maximum value of the function   
         """
 
-        max_gain = 0.
+        max_item, max_gain = (None, None), 0.
         # for each available positions
         V_avail = self._V_available.copy()
         for v in V_avail:
             # calculate the gain of placing item i on it
             for i in range(self.K): # over K item types 
-                gain = self.marginal_gain(i, v, update_count=False)
+                gain = self.marginal_gain(i, v)
                 if gain > max_gain:
-                    max_gain = gain 
+                    max_gain = gain
+                    max_item = (i, v)
+
+        # add the element to the initial set S
+        if max_item[0] is not None:
+            self._V_available.remove(max_item[1])
+            self.V[max_item[1]] = max_item[0]
+            self.S.append(max_item)
+            self.current_value += max_gain
+
         return max_gain 
 
 
