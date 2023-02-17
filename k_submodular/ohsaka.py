@@ -129,7 +129,6 @@ class KSubmodular():
         if update_count:
             self.update_marginal(i, v, value)
 
-        print(f'Marginal gain: {value}')
         return value
 
 
