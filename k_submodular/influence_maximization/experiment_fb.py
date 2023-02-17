@@ -30,7 +30,7 @@ def prepare_network(file):
 
     for n in network.nodes:
         d = network.out_degree(n)
-        if d >= 50:    # ~ 20 active nodes
+        if d >= 40:    # ~ 20 active nodes
             active_nodes.append(n)
 
     # to directed
