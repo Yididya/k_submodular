@@ -447,9 +447,11 @@ if __name__ == '__main__':
     # individual greedy
     experiment = KGreedyIndividualSizeConstrained(n, B_total=B_total, B_i=B_i, value_function=value_function)
     experiment.run()
+    for i, b_i in enumerate(B_i):
+        assert len([s for s in experiment.S if s[0] == i]) == b_i
     print(f'Number of evaluations {experiment.n_evaluations}')
     assert experiment.n_evaluations <= (n * len(B_i) + B_total - 1), 'Lazy evaluation sanity check'
-
+    assert len(experiment._V_available) + len(experiment.S) == len(experiment.V)
     # # individual greedy
     # experiment = KStochasticGreedyIndividualSizeConstrained(n, B_total=B_total, B_i=B_i, value_function=value_function)
     # experiment.run()
