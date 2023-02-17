@@ -13,7 +13,6 @@ import matplotlib.pyplot as plt
 import ohsaka
 import threshold_algorithm
 
-import weighted_network
 import independent_cascade
 
 
