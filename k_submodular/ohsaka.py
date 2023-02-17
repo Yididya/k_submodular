@@ -288,6 +288,20 @@ class KGreedyIndividualSizeConstrained(KSubmodular):
         self.B_total = sum(self.B_i)
         self.B_i_remaining = self.B_i.copy()
 
+    def pair_pool(self, V_available=None):
+        print('Recalculating pair pool')
+        pool = []
+
+        V_avail = V_available or self._V_available
+
+        # initialize heap with available elements
+        for i, available in enumerate(self.B_i_remaining):
+            if available > 0:
+                for v in V_avail:
+                    pool.append(ItemIndexPair((i, v), marginal_gain=self.marginal_lookup_table[i][v]))
+
+        hq.heapify(pool)
+        return pool
 
     def run(self):
         
@@ -296,16 +310,21 @@ class KGreedyIndividualSizeConstrained(KSubmodular):
             print(f'{self.__class__.name} - Iteration {j}/{self.B_total}')
             max_item, max_value = (None, None), -np.inf
             V_avail = self._V_available.copy()
-            for v in V_avail:
-                for i, available in enumerate(self.B_i_remaining): # over K item types
-                    if available > 0:
-                        lookup_value = self.lookup_marginal(i, v)
-                        if lookup_value < max_value:
-                            # don't bother
-                            continue
-                        gain = self.marginal_gain(i, v)
-                        if gain > max_value:
-                            max_item, max_value = (i, v), gain
+
+
+            pool = self.pair_pool(V_available=V_avail)  # restrict to the pool only to the random choices
+
+            for _ in range(len(pool)):
+                # get an element out of the loop
+                item = hq.heappop(pool)
+                i, v = item.index
+                lookup_value = self.lookup_marginal(i, v)
+                if lookup_value < max_value:
+                    # don't bother
+                    continue
+                gain = self.marginal_gain(i, v)
+                if gain > max_value:
+                    max_item, max_value = (i, v), gain
 
                 
             # update V_available 
@@ -423,3 +442,15 @@ if __name__ == '__main__':
 
     experiment.run()
     print(f'Number of evaluations {experiment.n_evaluations }')
+
+
+    # individual greedy
+    experiment = KGreedyIndividualSizeConstrained(n, B_total=B_total, B_i=B_i, value_function=value_function)
+    experiment.run()
+    print(f'Number of evaluations {experiment.n_evaluations}')
+    assert experiment.n_evaluations <= (n * len(B_i) + B_total - 1), 'Lazy evaluation sanity check'
+
+    # individual greedy
+    experiment = KStochasticGreedyIndividualSizeConstrained(n, B_total=B_total, B_i=B_i, value_function=value_function)
+    experiment.run()
+    print(f'Number of evaluations {experiment.n_evaluations}')
