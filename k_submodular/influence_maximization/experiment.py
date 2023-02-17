@@ -176,9 +176,9 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Experiment runner')
     parser.add_argument('--mode', action='store', type=str, default='plot', choices=['run', 'plot'])
-    parser.add_argument('--B', action='store', type=int, default=[5, 10, 15, 20], nargs='+')
+    parser.add_argument('--B', action='store', type=int, default=[ 5, 10, 15, 20, 25], nargs='+')
     parser.add_argument('--n-jobs', action='store', type=int, default=20)
-    parser.add_argument('--tolerance', action='store', type=float, default=[0.1, 0.2], nargs='+')
+    parser.add_argument('--tolerance', action='store', type=float, default=[0.1, 0.2, 0.3], nargs='+')
     parser.add_argument('--output', action='store', type=str, required=False)
     parser.add_argument('--alg', action='store', type=str, default=None,
                         choices=['KGreedyTotalSizeConstrained', 'KStochasticGreedyTotalSizeConstrained', 'ThresholdGreedyTotalSizeConstrained'])
@@ -195,14 +195,14 @@ if __name__ == '__main__':
     os.makedirs(output_dir, exist_ok=True)
 
     alg_mappings = {
-        # 'KGreedyTotalSizeConstrained': [ohsaka.KGreedyTotalSizeConstrained],
-        'KStochasticGreedyTotalSizeConstrained': [ohsaka.KStochasticGreedyTotalSizeConstrained],
+        'KGreedyTotalSizeConstrained': [ohsaka.KGreedyTotalSizeConstrained],
+        # 'KStochasticGreedyTotalSizeConstrained': [ohsaka.KStochasticGreedyTotalSizeConstrained],
         'ThresholdGreedyTotalSizeConstrained': [threshold_algorithm.ThresholdGreedyTotalSizeConstrained]
     }
 
     algorithms = [
-        # ohsaka.KGreedyTotalSizeConstrained,
-        ohsaka.KStochasticGreedyTotalSizeConstrained,
+        ohsaka.KGreedyTotalSizeConstrained,
+        # ohsaka.KStochasticGreedyTotalSizeConstrained,
         threshold_algorithm.ThresholdGreedyTotalSizeConstrained
     ]
 
@@ -267,7 +267,7 @@ if __name__ == '__main__':
                         n_evaluations[alg.name].append(r['n_evals'])
 
 
-        marker_types = ['o', 'v', '*', 'D']
+        marker_types = ['o', 'v', '*', 'D', 's']
         for i, key in enumerate(function_values.keys()):
             plt.plot(range(len(B_totals)), function_values[key], label=key, marker=marker_types[i])
             plt.ylabel('Influence spread')
