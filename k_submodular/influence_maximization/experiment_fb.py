@@ -68,7 +68,7 @@ class Experiment:
                  topics,  # topic ids to spread,
                  tolerance=None,
                  file='../../notebooks/facebook_ego.txt',
-                 n_mc=30,
+                 n_mc=50,
                  n_mc_final=10_000,
                  algorithm=ohsaka.KGreedyTotalSizeConstrained,
                  n_jobs=5
