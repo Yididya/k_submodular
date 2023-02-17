@@ -2,9 +2,9 @@
 
 #SBATCH --nodes=1 # request one node
 
-#SBATCH --cpus-per-task=3  # ask for 8 cpus
+#SBATCH --cpus-per-task=7  # ask for 8 cpus
 
-#SBATCH --mem=15G # Maximum amount of memory this job will be given, try to estimate this to the best of your ability. This asks for 128 GB of ram.
+#SBATCH --mem=10G # Maximum amount of memory this job will be given, try to estimate this to the best of your ability. This asks for 128 GB of ram.
 
 #SBATCH --partition=speedy
 
@@ -26,7 +26,7 @@
 
 module load gcc/10.2.0-zuvaafu
 
-module load python/3.8.8-ucekvff
+#module load python/3.8.8-ucekvff
 
 source /work/LAS/cjquinn-lab/Guanyu/aaai22/env/bin/activate
 
@@ -37,4 +37,4 @@ cd /work/LAS/cjquinn-lab/Guanyu/uai23/k_submodular/k_submodular/influence_maximi
 
 # the commands we're running are below
 
-python experiment.py --alg  $1
+python experiment_fb.py --alg  $1 --n-jobs 7 --B $2 --tolerance $3
