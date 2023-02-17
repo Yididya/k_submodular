@@ -332,5 +332,11 @@ if __name__ == '__main__':
 
     # individual size
     experiment = ThresholdGreedyIndividualSizeConstrained(n, B_total=B_total, B_i = B_i, value_function=value_function, tolerance=0.4)
+
+
     experiment.run()
+    for i, b_i in enumerate(B_i):
+        assert len([s for s in experiment.S if s[0] ==i ]) == b_i
+
+    assert len(experiment._V_available) + len(experiment.S) == len(experiment.V)
     print(f'Number of evaluations {experiment.n_evaluations}')
