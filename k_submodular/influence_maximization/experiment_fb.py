@@ -148,6 +148,25 @@ class Experiment:
     def run(self):
         for alg in self.algorithms:
             alg.run()
+
+
+    def final_run(self, S_list, n_mc=200):
+        """
+        Parameters
+        ----------
+        S_list list of selected values
+        Returns a dictionary with the evaluations of S on corresponding algorithms
+        ------
+        """
+        assert len(S_list) == len(self.algorithms), 'Number of algorithms and seed set do not match'
+        final_vals = []
+        for S in S_list:
+            final_vals.append(self.value_function(S, n_mc=n_mc))
+
+        return final_vals
+
+
+
     @property
     def results(self):
         return [{
@@ -166,8 +185,8 @@ class Experiment:
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Experiment runner')
-    parser.add_argument('--mode', action='store', type=str, default='run', choices=['run', 'plot'])
-    parser.add_argument('--B', action='store', type=int, default=[ 2, 4, 6, 8 ], nargs='+')
+    parser.add_argument('--mode', action='store', type=str, default='run', choices=['run', 'plot', 'final'])
+    parser.add_argument('--B', action='store', type=int, default=[ 2, 4, 6, 8, 10, 12, 14, 16, 18, 20 ], nargs='+')
     parser.add_argument('--n-jobs', action='store', type=int, default=10)
     parser.add_argument('--tolerance', action='store', type=float, default=[0.1, 0.2], nargs='+') # TODO; update this
     parser.add_argument('--output', action='store', type=str, required=False)
@@ -227,6 +246,48 @@ if __name__ == '__main__':
                 else:
                     with open(f'{output_dir}/{alg.__name__}__{B_total}_.pkl', 'wb') as f:
                         pickle.dump(exp.results, f)
+    elif mode == 'final':
+        for alg in algorithms:
+            for B_total in B_totals:
+                # look at pickles
+                if 'Threshold' in alg.__name__:
+                    with open(f'{output_dir}/{alg.__name__}__{B_total}_{tolerance_vals[0]}.pkl', 'rb') as f:
+                        results = pickle.load(f)
+                else:
+                    with open(f'{output_dir}/{alg.__name__}__{B_total}_.pkl', 'rb') as f:
+                        results = pickle.load(f)
+
+                if results[0].get('final_function_value', None):
+                    print('Already calculated ')
+                    continue
+
+                print(f'Running final run for {alg} with budget {B_total}')
+                topics = list(range(1, 6))
+                print(f'Using topics {topics}')
+                exp = Experiment(
+                    B_total=B_total,
+                    B_i=[1] * len(topics),
+                    topics=topics,
+                    algorithm=alg,
+                    tolerance= tolerance_vals[:1] if 'Threshold' in alg.__name__ else None,
+                    n_jobs=n_jobs,
+                    n_mc=n_mc
+                )
+
+                final_vals = exp.final_run([r['S'] for r in results], n_mc=500)
+                for k, r in enumerate(results):
+                    r['final_function_value'] = final_vals[k]
+
+
+                # update pickles
+                if 'Threshold' in alg.__name__:
+                    with open(f'{output_dir}/{alg.__name__}__{B_total}_{tolerance_vals[0]}.pkl', 'wb') as f:
+                        pickle.dump(results, f)
+                else:
+                    with open(f'{output_dir}/{alg.__name__}__{B_total}_.pkl', 'wb') as f:
+                        pickle.dump(results, f)
+
+
 
     elif mode == 'plot':
         # load the files
@@ -249,24 +310,24 @@ if __name__ == '__main__':
 
             for B_total in B_totals:
                 if 'Threshold' in alg.__name__:
-                    with open(f'{output_dir}/{alg.__name__}__{B_total}_.pkl', 'rb') as f:
-                        results = pickle.load(f)
-                else:
                     results = []
                     for t_val in tolerance_vals:
                         with open(f'{output_dir}/{alg.__name__}__{B_total}_{t_val}.pkl', 'rb') as f:
                             results.extend(pickle.load(f))
+                else:
+                    with open(f'{output_dir}/{alg.__name__}__{B_total}_.pkl', 'rb') as f:
+                        results = pickle.load(f)
 
                 # if type(results) == dict: results = [results]
 
                 for i, r in enumerate(results):
                     if 'Threshold' in alg.__name__:
                         name = alg.name + f'($\epsilon$={tolerance_vals[i]})'
-                        function_values[name].append(r['function_value'])
+                        function_values[name].append(r.get('final_function_value', r['function_value']))
                         n_evaluations[name].append(r['n_evals'])
                     else:
 
-                        function_values[alg.name].append(r['function_value'])
+                        function_values[alg.name].append(r.get('final_function_value', r['function_value']))
                         n_evaluations[alg.name].append(r['n_evals'])
 
 
