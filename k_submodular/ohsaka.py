@@ -3,7 +3,8 @@ from this import d
 import numpy as np
 from abc import abstractmethod
 import random 
-
+import heapq as hq
+import functools
 
 def value_function_template(n, B_i):
     # generate a lookup table 
@@ -26,7 +27,27 @@ def value_function_template(n, B_i):
     return value_function
 
 
+@functools.total_ordering
+class ItemIndexPair(object):
+    def __init__(self, pair_index, marginal_gain=None, last_evaluated=0):
+        self.index = pair_index
+        self.marginal_gain = marginal_gain or -np.inf
+        self.last_evaluated = last_evaluated
 
+    def __lt__(self, other):
+        """
+        Priority comparision,
+        the less the better, thus __lt__ instead of  __gt__
+        """
+        return self.marginal_gain > other.marginal_gain
+
+    def __eq__(self, other):
+        return (self.last_evaluated, self.marginal_gain) == (other.last_evaluated, other.marginal_gain)
+
+    def __repr__(self):
+        return '(ItemIndexPair {}, Last Evaluated {}, Marginal Gain {} )'.format(self.index,
+                                                                                 self.last_evaluated,
+                                                                                 self.marginal_gain)
 
 
 class KSubmodular():
@@ -53,7 +74,7 @@ class KSubmodular():
         self.B_total = B_total
 
         self.V = [-1 for v in range(self.n) ] # universe of locations(indices)
-        self._V_available = [i  for i, _ in enumerate(self.V)] # filtered available indices 
+        self._V_available = [i  for i, _ in enumerate(self.V)] # filtered available indices
 
         self.S = [] # item-index pairs currently selected  -- (i, v) 
 
@@ -67,6 +88,19 @@ class KSubmodular():
         ## marginal_gain lookup table for lazy evaluation
         self.marginal_lookup_table = np.ones((self.K, self.n)) * np.inf
 
+    def pair_pool(self, V_available=None):
+        print('Recalculating pair pool')
+        pool = []
+
+        V_avail = V_available or self._V_available
+
+        # initialize heap with available elements
+        for i in range(self.K):
+            for v in V_avail:
+                pool.append(ItemIndexPair((i, v), marginal_gain=self.marginal_lookup_table[i][v]))
+
+        hq.heapify(pool)
+        return pool
 
     def lookup_marginal(self, i, v):
         return self.marginal_lookup_table[i][v]
@@ -131,17 +165,19 @@ class KGreedyTotalSizeConstrained(KSubmodular):
         for j in range(self.B_total):
             print(f'{self.__class__.__name__} - Iteration {j}/{self.B_total}')
             max_item, max_value = (None, None), -np.inf
-            V_avail = self._V_available.copy()
-            for v in V_avail:
-                for i in range(self.K): # over K item types
-                    lookup_value = self.lookup_marginal(i, v)
-                    if lookup_value < max_value:
-                        # don't bother
-                        continue
+            pool = self.pair_pool()
 
-                    gain = self.marginal_gain(i, v)
-                    if gain > max_value:
-                        max_item, max_value = (i, v), gain
+            for _ in range(len(pool)):
+                # get an element out of the loop
+                item = hq.heappop(pool)
+                i, v = item.index
+                lookup_value = self.lookup_marginal(i, v)
+                if lookup_value < max_value:
+                    # don't bother
+                    continue
+                gain = self.marginal_gain(i, v)
+                if gain > max_value:
+                    max_item, max_value = (i, v), gain
 
                 
             # update V_available 
@@ -196,18 +232,22 @@ class KStochasticGreedyTotalSizeConstrained(KSubmodular):
                 self.n
             )
 
+            # TODO: sampling with/without replacement - subset_size > len(V_avail)
             V_avail = random.choices(V_avail, k=subset_size)
 
-            for v in V_avail:
-                for i in range(self.K):  # over K item types
-                    lookup_value = self.lookup_marginal(i, v)
-                    if lookup_value < max_value:
-                        # don't bother
-                        continue
+            pool = self.pair_pool(V_available=V_avail) # restrict to the pool only to the random choices
 
-                    gain = self.marginal_gain(i, v)
-                    if gain > max_value:
-                        max_item, max_value = (i, v), gain
+            for _ in range(len(pool)):
+                # get an element out of the loop
+                item = hq.heappop(pool)
+                i, v = item.index
+                lookup_value = self.lookup_marginal(i, v)
+                if lookup_value < max_value:
+                    # don't bother
+                    continue
+                gain = self.marginal_gain(i, v)
+                if gain > max_value:
+                    max_item, max_value = (i, v), gain
 
             # update V_available
             if max_item[0] is not None and max_item[1] is not None:
@@ -371,9 +411,15 @@ if __name__ == '__main__':
     B_total = sum(B_i)
 
     value_function = value_function_template(n, B_i)
+    experiment = KGreedyTotalSizeConstrained(n, B_total, B_i=B_i, value_function=value_function)
 
-    experiment = KStochasticGreedyTotalSizeConstrained(n, B_total=B_total, B_i = B_i, value_function=value_function)
-    # experiment = KGreedyIndividualSizeConstrained(n, B_total=B_total, B_i = B_i, value_function=value_function)
 
     experiment.run()
-    print(experiment)
+    print(f'Number of evaluations {experiment.n_evaluations}')
+    assert experiment.n_evaluations == (n * len(B_i) + B_total - 1), 'Lazy evaluation sanity check'
+
+    # total size greedy
+    experiment = KStochasticGreedyTotalSizeConstrained(n, B_total=B_total, B_i = B_i, value_function=value_function)
+
+    experiment.run()
+    print(f'Number of evaluations {experiment.n_evaluations }')
