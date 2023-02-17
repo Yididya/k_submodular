@@ -231,9 +231,9 @@ class KStochasticGreedyTotalSizeConstrained(KSubmodular):
                 int((self.n - j + 1) / (self.B_total - j + 1) * np.log(self.B_total / self.delta)),
                 self.n
             )
-
-            # TODO: sampling with/without replacement - subset_size > len(V_avail)
-            V_avail = random.choices(V_avail, k=subset_size)
+            # Random sample
+            if subset_size < len(V_avail):
+                V_avail = random.sample(V_avail, k=subset_size)
 
             pool = self.pair_pool(V_available=V_avail) # restrict to the pool only to the random choices
 
