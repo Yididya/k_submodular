@@ -155,7 +155,22 @@ class ThresholdGreedyIndividualSizeConstrained(ohsaka.KSubmodular):
             B_i,
             value_function
         )
-        
+
+
+        self.B_i_remaining = self.B_i.copy()
+
+
+        self.tolerance = tolerance
+        print(f'Using initial min_threshold {self._min_threshold} with tolerance {self.tolerance}')
+
+    @property
+    def tolerance(self):
+        return self._tolerance
+
+    @tolerance.setter
+    def tolerance(self, val):
+        self._tolerance = val
+        self._d = self._calculate_d()
         self._min_threshold = self._calculate_min_threshold()
         self.threshold = self._d
 
