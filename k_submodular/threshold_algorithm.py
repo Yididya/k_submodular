@@ -74,14 +74,6 @@ class ThresholdGreedyTotalSizeConstrained(ohsaka.KSubmodular):
 
 
 
-    @property
-    def U_S(self):
-        """
-        set of locations(indices) that are already occupied/filled by some item i
-        """
-        return [v for i, v in self.S]
-
-
 
     def run(self):
         ## no real rounds
@@ -119,6 +111,24 @@ class ThresholdGreedyTotalSizeConstrained(ohsaka.KSubmodular):
                     
             # update threshold 
             self.threshold = (1 - self.tolerance) * self.threshold
+
+        # pad remaining values
+        pool = self.pair_pool()
+        remaining_count = self.B_total - len(self.S)
+        while remaining_count > 0 and len(pool) > 0:
+            # get an element out of the loop
+            # check availability of v
+            item = hq.heappop(pool)
+            i, v = item.index
+
+            if self.V[v] == -1:
+                print('Padding more items ')
+                self.V[v] = i
+                self.S.append(item.index)
+                remaining_count -= 1
+
+
+
 
         print(self.S)
         print(f'Final value {self.current_value}')
