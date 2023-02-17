@@ -182,7 +182,7 @@ class KGreedyTotalSizeConstrained(KSubmodular):
                 
             # update V_available 
             if max_item[0] is not None and max_item[1] is not None:
-                print(f'Selected {max_item}')
+                print(f'Selected {max_item} with gain {max_value}')
                 self._V_available.remove(max_item[1])
                 self.V[max_item[1]] = max_item[0]
                 self.S.append(max_item)
@@ -250,7 +250,7 @@ class KStochasticGreedyTotalSizeConstrained(KSubmodular):
 
             # update V_available
             if max_item[0] is not None and max_item[1] is not None:
-                print(f'Selected {max_item}')
+                print(f'Selected {max_item} with gain {max_value}')
                 self._V_available.remove(max_item[1])
                 self.V[max_item[1]] = max_item[0]
                 self.S.append(max_item)
@@ -327,6 +327,7 @@ class KGreedyIndividualSizeConstrained(KSubmodular):
                 
             # update V_available 
             if max_item[0] is not None:
+                print(f'Selected {max_item} with gain {max_value}')
                 self._V_available.remove(max_item[1])
                 self.V[max_item[1]] = max_item[0]
                 self.S.append(max_item)
@@ -408,6 +409,7 @@ class KStochasticGreedyIndividualSizeConstrained(KGreedyIndividualSizeConstraine
 
                 if max_item[0] is not None and len(R) >= self.subset_size_i(max_item[0]) or not choices:
                     # update V_available
+                    print(f'Selected {max_item} with gain {max_value}')
                     self._V_available.remove(max_item[1])
                     self.V[max_item[1]] = max_item[0]
                     self.S.append(max_item)
