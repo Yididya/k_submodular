@@ -23,19 +23,19 @@ plt.rc('legend', fontsize = 20)
 
 
 def prepare_network(file):
-    ## Read network as nx.Graph
-    network = networkx.read_edgelist(file, nodetype=int)
+    with open('./facebook_louvain_subgraph.pkl', 'rb') as f:
+        network = pickle.load(f)
 
     active_nodes = []
 
     for n in network.nodes:
-        d = network.degree(n)
-        if d >= 200:
-            active_nodes.append(d)
+        d = network.out_degree(n)
+        if d >= 50:    # ~ 20 active nodes
+            active_nodes.append(n)
 
     # to directed
     network = network.to_directed()
-    return network, active_nodes[:3] # TODO: REMOVE THIS
+    return network, active_nodes
 
 
 # TODO CHECK randomness is consistent
@@ -119,7 +119,7 @@ class Experiment:
 
     def value_function(self, seed_set, n_mc=None):
         n_mc = n_mc or self.n_mc
-        infected_nodes = []
+        infected_nodes = {i:[] for i in range(n_mc)}
         print(seed_set)
         for topic_idx, topic in enumerate(self.topics):
 
@@ -136,13 +136,12 @@ class Experiment:
 
                 with Pool(self.n_jobs) as p:
                     nodes = p.map(ic_runner, range(n_mc))
-                    nodes = [j for i in nodes for j in i]  # flatten
-                    infected_nodes.extend(nodes)
+                    for i, n in enumerate(nodes):
+                        infected_nodes[i].extend(n)
 
+        # Aggregate infected_nodes over MC runs
+        infected_nodes = np.mean([len(set(lst)) for lst in list(infected_nodes.values())])
 
-        infected_nodes = len(set(infected_nodes))
-        # Influences
-        print(f'Infected nodes {infected_nodes}')
 
         return infected_nodes
 
@@ -182,6 +181,8 @@ if __name__ == '__main__':
     B_totals = args.B
     n_jobs = args.n_jobs
     tolerance_vals = args.tolerance
+    n_mc = 50
+    print(f'Using Tolerance vals {tolerance_vals}, n_mc {n_mc}')
 
     # prepare directories
     output_dir = './output'
@@ -208,22 +209,22 @@ if __name__ == '__main__':
                 print(f'Running experiment for {alg} with budget {B_total}')
                 topics = list(range(1, 6))
                 print(f'Using topics {topics}')
-
                 exp = Experiment(
                     B_total=B_total,
                     B_i=[1] * len(topics),
                     topics=topics,
                     algorithm=alg,
-                    tolerance= tolerance_vals if 'Threshold' in alg.__name__ else None,
-                    n_jobs=n_jobs
+                    tolerance= tolerance_vals[:1] if 'Threshold' in alg.__name__ else None,
+                    n_jobs=n_jobs,
+                    n_mc=n_mc
                 )
-
 
                 exp.run()
 
                 # save file
-                with open(f'{output_dir}/{alg.__name__}__{B_total}_.pkl', 'wb') as f:
-                    pickle.dump(exp.results, f)
+                if 'Threshold' in alg.__name__:
+                    with open(f'{output_dir}/{alg.__name__}__{B_total}_{tolerance_vals[0]}.pkl', 'wb') as f:
+                        pickle.dump(exp.results, f)
 
     elif mode == 'plot':
         # load the files
@@ -245,8 +246,14 @@ if __name__ == '__main__':
                 algs.append(alg)
 
             for B_total in B_totals:
-                with open(f'{output_dir}/{alg.__name__}__{B_total}_.pkl', 'rb') as f:
-                    results = pickle.load(f)
+                if 'Threshold' in alg.__name__:
+                    with open(f'{output_dir}/{alg.__name__}__{B_total}_.pkl', 'rb') as f:
+                        results = pickle.load(f)
+                else:
+                    results = []
+                    for t_val in tolerance_vals:
+                        with open(f'{output_dir}/{alg.__name__}__{B_total}_{t_val}.pkl', 'rb') as f:
+                            results.extend(pickle.load(f))
 
                 if type(results) == dict: results = [results]
 
