@@ -18,7 +18,7 @@ import independent_cascade
 
 plt.rcParams['figure.figsize'] = [10,8]
 plt.rc('font', size = 30)
-plt.rc('legend', fontsize = 20)
+plt.rc('legend', fontsize = 22)
 
 
 def prepare_network(file):
@@ -184,9 +184,10 @@ class Experiment:
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Experiment runner')
-    parser.add_argument('--mode', action='store', type=str, default='run', choices=['run', 'plot', 'final'])
-    parser.add_argument('--B', action='store', type=int, default=[ 2, 4, 6, 8, 10, 12, 14, 16, 18, 20 ], nargs='+')
+    parser.add_argument('--mode', action='store', type=str, default='plot', choices=['run', 'plot', 'final'])
+    parser.add_argument('--B', action='store', type=int, default=[ 2, 4, 6, 8, 10, 12, 14, 16, 18, 20], nargs='+')
     parser.add_argument('--n-jobs', action='store', type=int, default=10)
+    parser.add_argument('--n-mc', action='store', type=int, default=None)
     parser.add_argument('--tolerance', action='store', type=float, default=[0.1, 0.2], nargs='+') # TODO; update this
     parser.add_argument('--output', action='store', type=str, required=False)
     parser.add_argument('--alg', action='store', type=str, default=None,
@@ -198,7 +199,9 @@ if __name__ == '__main__':
     B_totals = args.B
     n_jobs = args.n_jobs
     tolerance_vals = args.tolerance
-    n_mc = 50
+    n_mc = args.n_mc or 1
+    n_mc_final = 500
+    topics = range(1, 5)
     print(f'Using Tolerance vals {tolerance_vals}, n_mc {n_mc}')
 
     # prepare directories
@@ -224,7 +227,6 @@ if __name__ == '__main__':
         for alg in algorithms:
             for B_total in B_totals:
                 print(f'Running experiment for {alg} with budget {B_total}')
-                topics = list(range(1, 6))
                 print(f'Using topics {topics}')
                 exp = Experiment(
                     B_total=B_total,
@@ -256,12 +258,11 @@ if __name__ == '__main__':
                     with open(f'{output_dir}/{alg.__name__}__{B_total}_.pkl', 'rb') as f:
                         results = pickle.load(f)
 
-                if results[0].get('final_function_value', None):
-                    print('Already calculated ')
-                    continue
+                # if results[0].get('final_function_value', None):
+                #     print('Already calculated ')
+                #     continue
 
                 print(f'Running final run for {alg} with budget {B_total}')
-                topics = list(range(1, 6))
                 print(f'Using topics {topics}')
                 exp = Experiment(
                     B_total=B_total,
@@ -273,7 +274,7 @@ if __name__ == '__main__':
                     n_mc=n_mc
                 )
 
-                final_vals = exp.final_run([r['S'] for r in results], n_mc=500)
+                final_vals = exp.final_run([r['S'] for r in results], n_mc=n_mc_final)
                 for k, r in enumerate(results):
                     r['final_function_value'] = final_vals[k]
 
@@ -332,24 +333,27 @@ if __name__ == '__main__':
 
         marker_types = ['o', 'v', '*', 'D', 's']
         for i, key in enumerate(function_values.keys()):
-            plt.plot(range(len(B_totals)), function_values[key], label=key, marker=marker_types[i])
-            plt.ylabel('Influence spread')
-            plt.xlabel('Budget (B)')
-            plt.xticks(range(len(B_totals)), B_totals)
+            plt.plot(range(len(B_totals)), function_values[key], label=key, marker=marker_types[i], markersize=12)
 
+            plt.xticks(range(len(B_totals)), B_totals)
+        plt.ylabel('Influence Spread')
+        plt.xlabel('Total Budget')
+        plt.grid(axis='both')
         plt.legend()
 
-        plt.savefig(f'{output_dir}/figure-infected-nodes.png', dpi=300, bbox_inches='tight')
+        plt.savefig(f'{output_dir}/TS-influence-n51-k4.png', dpi=300, bbox_inches='tight')
         plt.show()
         plt.figure()
 
         for i, key in enumerate(function_values.keys()):
-            plt.plot(range(len(B_totals)), n_evaluations[key], label=key, marker=marker_types[i])
-            plt.ylabel('function evaluations')
+            plt.plot(range(len(B_totals)), n_evaluations[key], label=key, marker=marker_types[i], markersize=12)
+
             plt.xticks(range(len(B_totals)), B_totals)
-            plt.xlabel('Total Size (b)')
+            plt.ylabel('Function Evaluations')
+            plt.xlabel('Total Budget')
+        plt.grid(axis='both')
         plt.legend()
 
-        plt.savefig(f'{output_dir}/figure-function-evaluations.png', dpi=300, bbox_inches='tight')
+        plt.savefig(f'{output_dir}/TS-eval-n51-k4.png', dpi=300, bbox_inches='tight')
         plt.show()
         plt.figure()

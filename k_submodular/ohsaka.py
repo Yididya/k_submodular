@@ -308,6 +308,10 @@ class KGreedyIndividualSizeConstrained(KSubmodular):
             max_item, max_value = (None, None), -np.inf
             V_avail = self._V_available.copy()
 
+            # incase we have more budget, than we can use
+            if len(V_avail) == 0:
+                break
+
 
             pool = self.pair_pool(V_available=V_avail)  # restrict to the pool only to the random choices
 
@@ -334,14 +338,14 @@ class KGreedyIndividualSizeConstrained(KSubmodular):
 
                 # Decrement the value of B_i
                 self.B_i_remaining[max_item[0]] -= 1
-        assert len(self.S) == self.B_total, "Budget must be used up"
+        # assert len(self.S) == self.B_total, "Budget must be used up"
         print(self.S)
         print(f'Final value {self.current_value}')
 
 
 
 class KStochasticGreedyIndividualSizeConstrained(KGreedyIndividualSizeConstrained):
-    name = 'k-Greedy-Stochastic-IS'
+    name = 'k-Stochastic-Greedy-IS'
     
     def __init__(self, 
             n, 
@@ -384,6 +388,9 @@ class KStochasticGreedyIndividualSizeConstrained(KGreedyIndividualSizeConstraine
         for j in range(self.B_total):
             print(f'{self.__class__.__name__} - Iteration {j}/{self.B_total}')
             R = []
+            # incase we have more budget, than we can use
+            if len(self._V_available) == 0:
+                break
 
             max_item, max_value = (None, None), -np.inf
 
@@ -419,7 +426,7 @@ class KStochasticGreedyIndividualSizeConstrained(KGreedyIndividualSizeConstraine
 
                     break
 
-        assert len(self.S) == self.B_total, "Budget must be used up"
+        # assert len(self.S) == self.B_total, "Budget must be used up"
         print(self.S)
         print(f'Final value {self.current_value}')
 

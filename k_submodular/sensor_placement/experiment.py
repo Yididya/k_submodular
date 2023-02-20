@@ -17,6 +17,8 @@ import threshold_algorithm
 plt.rcParams['figure.figsize'] = [10,8]
 plt.rc('font', size = 30)
 plt.rc('legend', fontsize = 20)
+plt.rc('xtick', labelsize=18)
+plt.rc('ytick', labelsize=18)
 
 
 with open('./sensor_data.pkl', 'rb') as f:
@@ -106,7 +108,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Experiment runner')
     parser.add_argument('--mode', action='store', type=str, default='plot', choices=['run', 'plot'])
     parser.add_argument('--B', action='store', type=int, default=None, nargs='+')
-    parser.add_argument('--B_i', action='store', type=int, default=list(range(1, 11)), nargs='+')
+    parser.add_argument('--B_i', action='store', type=int, default=list(range(1, 19)), nargs='+')
     parser.add_argument('--tolerance', action='store', type=float, default=[0.1, 0.2], nargs='+')
     parser.add_argument('--output', action='store', type=str, required=False)
     parser.add_argument('--alg', action='store', type=str, default=None,
@@ -211,7 +213,7 @@ if __name__ == '__main__':
         for i, key in enumerate(function_values.keys()):
             plt.plot(range(len(B_totals)), n_evaluations[key], label=key, marker=marker_types[i])
             plt.ylabel('function evaluations')
-            plt.xticks(range(len(B_totals)), B_totals)
+            plt.xticks(range(len(B_totals)), [int(b / 3) for b in B_totals])
             plt.xlabel('Total Size (b)')
         plt.legend()
 

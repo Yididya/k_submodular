@@ -19,11 +19,11 @@ import independent_cascade
 
 plt.rcParams['figure.figsize'] = [10,8]
 plt.rc('font', size = 30)
-plt.rc('legend', fontsize = 20)
+plt.rc('legend', fontsize = 22)
 
 
 
-def prepare_network(file):
+def prepare_network(file, out_degrees=50):
     with open('./facebook_louvain_subgraph.pkl', 'rb') as f:
         network = pickle.load(f)
 
@@ -31,7 +31,7 @@ def prepare_network(file):
 
     for n in network.nodes:
         d = network.out_degree(n)
-        if d >= 40:    # ~ 20 active nodes
+        if d >= out_degrees:    # ~ 20 active nodes
             active_nodes.append(n)
 
     # to directed
@@ -186,14 +186,14 @@ class Experiment:
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Experiment runner')
-    parser.add_argument('--mode', action='store', type=str, default='run', choices=['run', 'plot', 'final'])
-    parser.add_argument('--B', action='store', type=int, default=[ 1, 2, 3, 4, 5], nargs='+') # individual size
+    parser.add_argument('--mode', action='store', type=str, default='plot', choices=['run', 'plot', 'final'])
+    parser.add_argument('--B', action='store', type=int, default=[ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10], nargs='+') # individual size
     parser.add_argument('--n-jobs', action='store', type=int, default=10)
     parser.add_argument('--n-mc', action='store', type=int, default=None)
     parser.add_argument('--tolerance', action='store', type=float, default=[0.1, 0.2], nargs='+') # TODO; update this
     parser.add_argument('--output', action='store', type=str, required=False)
     parser.add_argument('--alg', action='store', type=str, default=None,
-                        choices=['KGreedyIndividualSizeConstrained', 'KStochasticGreedyTotalSizeConstrained', 'ThresholdGreedyIndividualSizeConstrained'])
+                        choices=['KGreedyIndividualSizeConstrained', 'KStochasticGreedyIndividualSizeConstrained', 'ThresholdGreedyIndividualSizeConstrained'])
 
     args = parser.parse_args()
 
@@ -201,8 +201,10 @@ if __name__ == '__main__':
 
     n_jobs = args.n_jobs
     tolerance_vals = args.tolerance
-    n_mc = args.n_mc or 50
-    topics = range(1, 5)
+    n_mc = args.n_mc or 100
+    n_mc_final = 500
+    # topics = range(1, 9)  # k=8
+    topics = range(1, 5)  # k=4
     B_totals = args.B
     B_totals = [B * len(topics) for B in B_totals ]
 
@@ -278,7 +280,7 @@ if __name__ == '__main__':
                     n_mc=n_mc
                 )
 
-                final_vals = exp.final_run([r['S'] for r in results], n_mc=100)
+                final_vals = exp.final_run([r['S'] for r in results], n_mc=n_mc_final)
                 for k, r in enumerate(results):
                     r['final_function_value'] = final_vals[k]
 
@@ -337,24 +339,28 @@ if __name__ == '__main__':
 
         marker_types = ['o', 'v', '*', 'D', 's']
         for i, key in enumerate(function_values.keys()):
-            plt.plot(range(len(B_totals)), function_values[key], label=key, marker=marker_types[i])
-            plt.ylabel('Influence spread')
-            plt.xlabel('Budget (B)')
-            plt.xticks(range(len(B_totals)), B_totals)
-
+            plt.plot(range(len(B_totals)), function_values[key], label=key, marker=marker_types[i], markersize=12)
+        plt.xticks(range(len(B_totals)), [B_total//len(topics)  for B_total in B_totals])
         plt.legend()
-
-        plt.savefig(f'{output_dir}/figure-infected-nodes.png', dpi=300, bbox_inches='tight')
+        plt.ylabel('Influence Spread')
+        plt.xlabel('Value of b')
+        plt.grid(axis='both')
+        plt.savefig(f'{output_dir}/IS-influence-n51-k4.png', dpi=300, bbox_inches='tight')
+        # plt.savefig(f'{output_dir}/IS-influence-n21-k8.png', dpi=300, bbox_inches='tight')
         plt.show()
         plt.figure()
 
         for i, key in enumerate(function_values.keys()):
-            plt.plot(range(len(B_totals)), n_evaluations[key], label=key, marker=marker_types[i])
-            plt.ylabel('function evaluations')
-            plt.xticks(range(len(B_totals)), B_totals)
-            plt.xlabel('Total Size (b)')
-        plt.legend()
+            plt.plot(range(len(B_totals)), n_evaluations[key], label=key, marker=marker_types[i], markersize=12)
 
-        plt.savefig(f'{output_dir}/figure-function-evaluations.png', dpi=300, bbox_inches='tight')
+            plt.xticks(range(len(B_totals)), [B_total//len(topics)  for B_total in B_totals])
+
+        plt.ylabel('Function Evaluations')
+        plt.xlabel('Value of b')
+
+        plt.grid(axis='both')
+        plt.legend()
+        # plt.savefig(f'{output_dir}/IS-eval-n21-k8.png', dpi=300, bbox_inches='tight')
+        plt.savefig(f'{output_dir}/IS-eval-n51-k4.png', dpi=300, bbox_inches='tight')
         plt.show()
         plt.figure()
