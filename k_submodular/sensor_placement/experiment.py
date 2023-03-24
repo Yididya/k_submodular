@@ -1,6 +1,8 @@
 import os, sys;
 import pickle
 
+
+
 sys.path.append(os.path.dirname('../'))
 import argparse
 
@@ -36,19 +38,31 @@ class Experiment:
                  algorithm=ohsaka.KGreedyIndividualSizeConstrained,
                  ):
 
+        humidity = pd.read_csv('../../k_submodular/sensor_placement/hums.tsv', sep='\t')
+        temp = pd.read_csv('../../k_submodular/sensor_placement/temps.tsv', sep='\t')
+        light = pd.read_csv('../../k_submodular/sensor_placement/lights.tsv', sep='\t')
 
-
+        # remove last column
+        humidity = humidity[humidity.columns[:55]]
+        temp = temp[temp.columns[:55]]
+        light = light[light.columns[:55]]
 
         # sensor locations
-        self.location_ids = sensor_data['locations']  # location ids
-        self.location_maps = dict(zip(range(len(self.location_ids)), self.location_ids))
+        self.location_ids = humidity.columns.to_list()  # location ids
+        self.sensor_types = ['temp', 'humidity', 'light']
 
-        self.entropy_data = sensor_data['temperature_entropies'], \
-                            sensor_data['humidity_entropies'], \
-                            sensor_data['light_entropies']
+        # rename and merge
+        light.rename(columns={k: f'light_{k}' for k in light.columns}, inplace=True)
+        temp.rename(columns={k: f'temp_{k}' for k in temp.columns}, inplace=True)
+        humidity.rename(columns={k: f'humidity_{k}' for k in humidity.columns}, inplace=True)
+
+        self.df = pd.concat([temp, humidity, light], axis=1)
+
+        self.location_maps = dict(zip(range(len(self.location_ids)), self.location_ids))
+        self.sensor_maps = dict(zip(range(len(self.sensor_types)), self.sensor_types))
 
         self.n = len(self.location_ids)
-        self.B_total = B_total # total budget
+        self.B_total = B_total  # total budget
         self.B_i = B_i
 
         self.k = len(B_i)
@@ -70,19 +84,23 @@ class Experiment:
                 self.B_i,
                 self.value_function)]
 
+    def calculate_entropy(self, cols):
+        n_data_points = self.df.shape[0]
 
+        freqs = self.df.groupby(cols).size().values
 
+        p = freqs / n_data_points
 
+        H = - np.sum(p * np.log(p))
+
+        return H
 
     def value_function(self, seed_set):
-        total_entropy = 0.
-
+        cols = []
         for sensor_idx, location_idx in seed_set:
-            mapped_location_idx = self.location_maps[location_idx]
-            total_entropy += self.entropy_data[sensor_idx][mapped_location_idx]
+            cols.append(f'{self.sensor_types[sensor_idx]}_{self.location_ids[location_idx]}')
 
-
-        return total_entropy
+        return self.calculate_entropy(cols)
 
 
     def run(self):
@@ -109,10 +127,14 @@ if __name__ == '__main__':
     parser.add_argument('--mode', action='store', type=str, default='plot', choices=['run', 'plot'])
     parser.add_argument('--B', action='store', type=int, default=None, nargs='+')
     parser.add_argument('--B_i', action='store', type=int, default=list(range(1, 19)), nargs='+')
-    parser.add_argument('--tolerance', action='store', type=float, default=[0.1, 0.2], nargs='+')
+    parser.add_argument('--tolerance', action='store', type=float, default=[0.1, 0.2, 0.5], nargs='+')
     parser.add_argument('--output', action='store', type=str, required=False)
     parser.add_argument('--alg', action='store', type=str, default=None,
-                        choices=['KGreedyIndividualSizeConstrained', 'KStochasticGreedyIndividualSizeConstrained', 'ThresholdGreedyIndividualSizeConstrained'])
+                        choices=[
+                            'KGreedyIndividualSizeConstrained',
+                            'KStochasticGreedyIndividualSizeConstrained',
+                            'ThresholdGreedyIndividualSizeConstrained'
+                        ])
 
     args = parser.parse_args()
 
@@ -197,7 +219,7 @@ if __name__ == '__main__':
                         n_evaluations[alg.name].append(r['n_evals'])
 
 
-        marker_types = ['o', 'v', '*', 'D']
+        marker_types = ['o', 'v', '*', 'D', 'x']
         for i, key in enumerate(function_values.keys()):
             plt.plot(range(len(B_totals)), function_values[key], label=key, marker=marker_types[i])
             plt.ylabel('Entropy')
