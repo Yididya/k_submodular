@@ -246,7 +246,7 @@ class ThresholdGreedyIndividualSizeConstrained(ohsaka.KSubmodular):
                 i, v = item.index
                 budget_exhausted = len(self.S) == self.B_total
 
-                if not budget_exhausted and self.B_i_remaining[i] > 1 and self.V[v] == -1:  # budget available & item is still empty
+                if not budget_exhausted and self.B_i_remaining[i] > 0 and self.V[v] == -1:  # budget available & item is still empty
                     # check table, make sure the saved marginal gain is >= current threshold
                     # if yes, evaluate and update
                     lookup_value = self.lookup_marginal(i, v)
