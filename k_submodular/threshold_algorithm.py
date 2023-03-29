@@ -13,9 +13,11 @@ class ThresholdGreedyTotalSizeConstrained(ohsaka.KSubmodular):
         B_total, 
         B_i, 
         value_function,
-        tolerance):
+        epsilon):
         """
-        :param tolerance(epsilon) parameter with which the threshold(tau) is defined 
+        :param epsilon - tolerance parameter with which the threshold(tau) is defined
+        :param B_total : int - total budget
+        :param value_function - function to evaluate
         """
 
         super().__init__(
@@ -25,19 +27,17 @@ class ThresholdGreedyTotalSizeConstrained(ohsaka.KSubmodular):
             value_function
         )
 
-        self.tolerance = tolerance
+        self.epsilon = epsilon
+        self.d = self._calculate_d()
 
-    @property
-    def tolerance(self):
-        return self._tolerance
+        # initialize the min threshold
+        self.min_threshold = ((1 - epsilon) * epsilon) * self.d / (2 * self.B_total)
 
+        # threshold - tau in the text
+        self.threshold = self.d
 
-    @tolerance.setter
-    def tolerance(self, val):
-        self._tolerance = val
-        self._d = self._calculate_d()
-        self._min_threshold = self._calculate_min_threshold()
-        self.threshold = self._d
+        print(f'Initial threshold {self.threshold} -- {self.min_threshold}')
+
 
     def _calculate_d(self):
         """
@@ -77,7 +77,7 @@ class ThresholdGreedyTotalSizeConstrained(ohsaka.KSubmodular):
 
         budget_exhausted = False  
 
-        while self.threshold > self._min_threshold:
+        while self.threshold > self.min_threshold:
 
             pool = self.pair_pool()
 
@@ -107,7 +107,7 @@ class ThresholdGreedyTotalSizeConstrained(ohsaka.KSubmodular):
                 break
                     
             # update threshold 
-            self.threshold = (1 - self.tolerance) * self.threshold
+            self.threshold = (1 - self.epsilon) * self.threshold
 
         # pad remaining values
         pool = self.pair_pool()
@@ -134,7 +134,15 @@ class ThresholdGreedyTotalSizeConstrained(ohsaka.KSubmodular):
 
 
 
+"""
+Inputs 
+    * tolerance (\epsilon) - tolerance parameter
+    * B - total budget  
+    * B_i - individual sizes 
+    * value_function - the function to evaluate the selected sets
 
+$\tau$ -  tolerance value 
+"""
 
 class ThresholdGreedyIndividualSizeConstrained(ohsaka.KSubmodular):
     name = "Threshold-Greedy-IS"
@@ -144,7 +152,7 @@ class ThresholdGreedyIndividualSizeConstrained(ohsaka.KSubmodular):
         B_total, 
         B_i, 
         value_function,
-        tolerance):
+        epsilon):
         """
         :param tolerance(epsilon) parameter with which the threshold(tau) is defined 
         """
@@ -159,20 +167,15 @@ class ThresholdGreedyIndividualSizeConstrained(ohsaka.KSubmodular):
 
         self.B_i_remaining = self.B_i.copy()
 
+        # initialize _d -- the initial value of tau
+        self.d = self._calculate_d()
+        self.threshold = self.d
+        self.min_threshold = ((1 - epsilon) * epsilon) * self.d / (3 * self.B_total)
 
-        self.tolerance = tolerance
-        print(f'Using initial min_threshold {self._min_threshold} with tolerance {self.tolerance}')
+        self.epsilon = epsilon
+        # print(f'Using initial threshold  min_threshold {self.min_threshold} with tolerance {self.epsilon}')
+        print(f'Initial threshold {self.threshold} -- {self.min_threshold}')
 
-    @property
-    def tolerance(self):
-        return self._tolerance
-
-    @tolerance.setter
-    def tolerance(self, val):
-        self._tolerance = val
-        self._d = self._calculate_d()
-        self._min_threshold = self._calculate_min_threshold()
-        self.threshold = self._d
 
     def _calculate_d(self):
         """
@@ -215,8 +218,6 @@ class ThresholdGreedyIndividualSizeConstrained(ohsaka.KSubmodular):
         return [ v for idx, v in self.S if idx == i]
 
 
-    def _calculate_min_threshold(self):
-        return self.tolerance * self._d * (1 - self.tolerance) / (3 * self.B_total)
 
 
     def pair_pool(self, V_available=None):
@@ -235,7 +236,7 @@ class ThresholdGreedyIndividualSizeConstrained(ohsaka.KSubmodular):
 
     def run(self):
         
-        while self.threshold > self._min_threshold:
+        while self.threshold > self.min_threshold:
 
             pool = self.pair_pool()
 
@@ -267,7 +268,8 @@ class ThresholdGreedyIndividualSizeConstrained(ohsaka.KSubmodular):
 
           
             # update threshold 
-            self.threshold = (1 - self.tolerance) * self.threshold
+            self.threshold = (1 - self.epsilon) * self.threshold
+            # print(f'Updated threshold to {self.threshold}')
 
             # check on budget 
             if self.budget_exhausted:
@@ -284,6 +286,7 @@ class ThresholdGreedyIndividualSizeConstrained(ohsaka.KSubmodular):
             if self.V[v] == -1 and self.B_i_remaining[i] > 0:
                 print('Padding more items ')
                 self.V[v] = i
+                self._V_available.remove(v)
                 self.S.append(item.index)
                 remaining_count -= 1
                 self.B_i_remaining[i] -= 1
@@ -326,15 +329,26 @@ if __name__ == '__main__':
 
     value_function = value_function_template(n, B_i)
 
-    experiment = ThresholdGreedyTotalSizeConstrained(n, B_total=B_total, B_i = B_i, value_function=value_function, tolerance=0.1)
+    experiment = ThresholdGreedyTotalSizeConstrained(n, B_total=B_total, B_i = B_i, value_function=value_function, epsilon=0.1)
+    min_threshold = experiment.min_threshold
+    d = experiment.d
     experiment.run()
+
     print(f'Number of evaluations {experiment.n_evaluations}')
+    assert min_threshold == experiment.min_threshold, "Min threshold changed "
+    assert d == experiment.d, "Initial threshold changed"
 
     # individual size
-    experiment = ThresholdGreedyIndividualSizeConstrained(n, B_total=B_total, B_i = B_i, value_function=value_function, tolerance=0.4)
-
+    experiment = ThresholdGreedyIndividualSizeConstrained(n, B_total=B_total, B_i = B_i, value_function=value_function, epsilon=0.4)
+    min_threshold = experiment.min_threshold
+    d = experiment.d
 
     experiment.run()
+
+    # sanity
+    assert min_threshold == experiment.min_threshold, "Min threshold changed "
+    assert d == experiment.d, "Initial threshold changed"
+
     for i, b_i in enumerate(B_i):
         assert len([s for s in experiment.S if s[0] ==i ]) == b_i
 
