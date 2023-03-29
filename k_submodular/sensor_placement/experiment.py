@@ -32,9 +32,7 @@ class Experiment:
     def __init__(self,
                  B_total,
                  B_i,
-                 tolerance=None,
-                 n_mc=30,
-                 n_mc_final=10_000,
+                 tolerance=None, # tolerance parameter(epsilon) for the threshold
                  algorithm=ohsaka.KGreedyIndividualSizeConstrained,
                  ):
 
@@ -77,7 +75,7 @@ class Experiment:
                     self.B_total,
                     self.B_i.copy(),
                     self.value_function,
-                    tolerance=t) for t in self.tolerance]
+                    epsilon=t) for t in self.tolerance]
         else:
             self.algorithms = [algorithm(self.n,
                 self.B_total,
@@ -128,6 +126,9 @@ if __name__ == '__main__':
     parser.add_argument('--B', action='store', type=int, default=None, nargs='+')
     parser.add_argument('--B_i', action='store', type=int, default=list(range(1, 19)), nargs='+')
     parser.add_argument('--tolerance', action='store', type=float, default=[0.1, 0.2, 0.5], nargs='+')
+    # TODO: add delta options for stochastic greedy
+    # parser.add_argument('--tolerance', action='store', type=float, default=[0.1, 0.2, 0.5], nargs='+')
+
     parser.add_argument('--output', action='store', type=str, required=False)
     parser.add_argument('--alg', action='store', type=str, default=None,
                         choices=[
@@ -219,12 +220,12 @@ if __name__ == '__main__':
                         n_evaluations[alg.name].append(r['n_evals'])
 
 
-        marker_types = ['o', 'v', '*', 'D', 'x']
+        marker_types = ['o', 'v', '*', 'D', 'x', 'H']
         for i, key in enumerate(function_values.keys()):
             plt.plot(range(len(B_totals)), function_values[key], label=key, marker=marker_types[i])
             plt.ylabel('Entropy')
-            plt.xlabel('Budget (B)')
-            plt.xticks(range(len(B_totals)), B_totals)
+            plt.xlabel('Value of b')
+            plt.xticks(range(len(B_totals)), [int(b / 3) for b in B_totals])
 
         plt.legend()
 
@@ -234,9 +235,9 @@ if __name__ == '__main__':
 
         for i, key in enumerate(function_values.keys()):
             plt.plot(range(len(B_totals)), n_evaluations[key], label=key, marker=marker_types[i])
-            plt.ylabel('function evaluations')
+            plt.ylabel('Function Evaluations')
             plt.xticks(range(len(B_totals)), [int(b / 3) for b in B_totals])
-            plt.xlabel('Total Size (b)')
+            plt.xlabel('Value of b')
         plt.legend()
 
         plt.savefig(f'{output_dir}/figure-function-evaluations.png', dpi=300, bbox_inches='tight')
