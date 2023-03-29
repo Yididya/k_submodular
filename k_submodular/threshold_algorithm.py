@@ -13,7 +13,8 @@ class ThresholdGreedyTotalSizeConstrained(ohsaka.KSubmodular):
         B_total, 
         B_i, 
         value_function,
-        epsilon):
+        epsilon,
+        padding=False):
         """
         :param epsilon - tolerance parameter with which the threshold(tau) is defined
         :param B_total : int - total budget
@@ -38,6 +39,7 @@ class ThresholdGreedyTotalSizeConstrained(ohsaka.KSubmodular):
 
         print(f'Initial threshold {self.threshold} -- {self.min_threshold}')
 
+        self.padding = padding
 
     def _calculate_d(self):
         """
@@ -45,9 +47,8 @@ class ThresholdGreedyTotalSizeConstrained(ohsaka.KSubmodular):
         """
 
         max_item, max_gain = (None, None), 0.
-        # for each available positions
-        V_avail = self._V_available.copy()
-        for v in V_avail:
+        # for each location
+        for v in range(len(self.V)):
             # calculate the gain of placing item i on it
             for i in range(self.K): # over K item types 
                 gain = self.marginal_gain(i, v)
@@ -63,10 +64,6 @@ class ThresholdGreedyTotalSizeConstrained(ohsaka.KSubmodular):
             self.current_value += max_gain
 
         return max_gain 
-
-
-    def _calculate_min_threshold(self):
-        return self.tolerance * self._d * (1 - self.tolerance) / (2 * self.B_total)
 
 
 
@@ -110,19 +107,19 @@ class ThresholdGreedyTotalSizeConstrained(ohsaka.KSubmodular):
             self.threshold = (1 - self.epsilon) * self.threshold
 
         # pad remaining values
-        pool = self.pair_pool()
-        remaining_count = self.B_total - len(self.S)
-        while remaining_count > 0 and len(pool) > 0:
-            # get an element out of the loop
-            # check availability of v
-            item = hq.heappop(pool)
-            i, v = item.index
-
-            if self.V[v] == -1:
-                print('Padding more items ')
-                self.V[v] = i
-                self.S.append(item.index)
-                remaining_count -= 1
+        if self.padding:
+            pool = self.pair_pool()
+            remaining_count = self.B_total - len(self.S)
+            while remaining_count > 0 and len(pool) > 0:
+                # get an element out of the loop
+                # check availability of v
+                item = hq.heappop(pool)
+                i, v = item.index
+                if self.V[v] == -1:
+                    print('Padding more items ')
+                    self.V[v] = i
+                    self.S.append(item.index)
+                    remaining_count -= 1
 
 
 
@@ -152,7 +149,8 @@ class ThresholdGreedyIndividualSizeConstrained(ohsaka.KSubmodular):
         B_total, 
         B_i, 
         value_function,
-        epsilon):
+        epsilon,
+        padding=False):
         """
         :param tolerance(epsilon) parameter with which the threshold(tau) is defined 
         """
@@ -175,7 +173,7 @@ class ThresholdGreedyIndividualSizeConstrained(ohsaka.KSubmodular):
         self.epsilon = epsilon
         # print(f'Using initial threshold  min_threshold {self.min_threshold} with tolerance {self.epsilon}')
         print(f'Initial threshold {self.threshold} -- {self.min_threshold}')
-
+        self.padding = padding
 
     def _calculate_d(self):
         """
@@ -183,16 +181,14 @@ class ThresholdGreedyIndividualSizeConstrained(ohsaka.KSubmodular):
         """
 
         max_item, max_gain = (None, None), 0.
-        # for each available positions
-        V_avail = self._V_available.copy()
-        for v in V_avail:
+        # for each location
+        for v in range(len(self.V)):
             # calculate the gain of placing item i on it
             for i in range(self.K):  # over K item types
-                if self.B_i_remaining[i] > 0:
-                    gain = self.marginal_gain(i, v)
-                    if gain > max_gain:
-                        max_gain = gain
-                        max_item = (i, v)
+                gain = self.marginal_gain(i, v)
+                if gain > max_gain:
+                    max_gain = gain
+                    max_item = (i, v)
 
         # add the element to the initial set S
         if max_item[0] is not None:
@@ -269,27 +265,29 @@ class ThresholdGreedyIndividualSizeConstrained(ohsaka.KSubmodular):
           
             # update threshold 
             self.threshold = (1 - self.epsilon) * self.threshold
-            # print(f'Updated threshold to {self.threshold}')
+            print(f'Updated threshold to {self.threshold}')
 
             # check on budget 
             if self.budget_exhausted:
                 break
 
         # pad remaining values
-        pool = self.pair_pool()
-        remaining_count = self.B_total - len(self.S)
-        while remaining_count > 0 and len(pool) > 0:
-            # get an element out of the loop
-            # check availability of v
-            item = hq.heappop(pool)
-            i, v = item.index
-            if self.V[v] == -1 and self.B_i_remaining[i] > 0:
-                print('Padding more items ')
-                self.V[v] = i
-                self._V_available.remove(v)
-                self.S.append(item.index)
-                remaining_count -= 1
-                self.B_i_remaining[i] -= 1
+        if self.padding:
+            pool = self.pair_pool()
+            remaining_count = self.B_total - len(self.S)
+            while remaining_count > 0 and len(pool) > 0:
+                # get an element out of the loop
+                # check availability of v
+                item = hq.heappop(pool)
+                i, v = item.index
+                if self.V[v] == -1 and self.B_i_remaining[i] > 0:
+                    print('Padding more items ')
+                    self.V[v] = i
+                    self._V_available.remove(v)
+                    self.S.append(item.index)
+                    remaining_count -= 1
+                    self.B_i_remaining[i] -= 1
+
 
 
         print(self.S)
