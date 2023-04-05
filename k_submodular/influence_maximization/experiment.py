@@ -1,4 +1,5 @@
-import os, sys;
+import hashlib
+import os, sys
 import pickle
 
 sys.path.append(os.path.dirname('../'))
@@ -50,8 +51,8 @@ class Experiment:
                  n_mc=50,
                  n_mc_final=10_000,
                  algorithm=ohsaka.KGreedyTotalSizeConstrained,
-                 n_jobs=5
-
+                 n_jobs=5,
+                 function_evalutions_dir='./output/evals'
                  ):
 
         assert len(topics) == len(B_i), "#topics should be equal to the items to be selected"
@@ -70,6 +71,11 @@ class Experiment:
         self.n_mc = n_mc
         self.n_mc_final = n_mc_final
         self.n_jobs = n_jobs
+
+        ## saving expensive function evaluations
+        self.function_evaluations_dir = function_evalutions_dir
+        ## create directory if not exists
+        os.makedirs(self.function_evaluations_dir, exist_ok=True)
 
         print(f'Using {self.n_jobs} jobs, n_mc {self.n_mc}')
 
@@ -95,8 +101,35 @@ class Experiment:
         self.K_networks = create_K_networks(self.network, len(self.topics))
 
 
+    def hash_seed_set(self, seed_set):
+        """
+        Hashes a seed set using SHA256 algorithm and return its digest
+        Returns hex digest
+        -------
+        """
+
+        # order the seed set
+        sorted_seed_set = sorted(seed_set)
+        return hashlib.sha256(str(sorted_seed_set).encode('utf-8')).hexdigest()
+
+
 
     def value_function(self, seed_set, n_mc=None):
+
+        # lookup in the saved results
+        fname = f'{self.function_evaluations_dir}/{self.hash_seed_set(seed_set)}.txt'
+        if os.path.exists(fname):
+            print('looking up save evaluation..')
+            with open(fname, 'r') as f:
+                line = f.readline()
+                n_infected = float(line.strip())
+
+                return n_infected
+
+
+
+
+
         n_mc = n_mc or self.n_mc
         infected_nodes = {i:[] for i in range(n_mc)}
         print(seed_set)
@@ -121,6 +154,10 @@ class Experiment:
         # Aggregate infected_nodes over MC runs
         infected_nodes = np.mean([len(set(lst)) for lst in list(infected_nodes.values())])
 
+        # save results to file
+        with open(fname, 'w') as f:
+            print(infected_nodes)
+            f.write(str(infected_nodes))
 
         return infected_nodes
 
