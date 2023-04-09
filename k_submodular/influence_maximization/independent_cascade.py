@@ -15,7 +15,10 @@ import random
 
 __all__ = ['independent_cascade']
 
-def independent_cascade(G, seeds, steps=0):
+import numpy as np
+
+
+def independent_cascade(G, seeds, steps=0, weighted_graph=True, copy_graph=False):
   """Return the active nodes of each diffusion step by the independent cascade
   model
 
@@ -64,18 +67,22 @@ def independent_cascade(G, seeds, steps=0):
       raise Exception("seed", s, "is not in graph")
 
   # change to directed graph
-  if not G.is_directed():
-    DG = G.to_directed()
+  if copy_graph:
+    if not G.is_directed():
+      DG = G.to_directed()
+    else:
+      DG = copy.deepcopy(G)
   else:
-    DG = copy.deepcopy(G)
+    DG = G
 
   # init activation probabilities
-  for e in DG.edges():
-    if 'act_prob' not in DG[e[0]][e[1]]:
-      DG[e[0]][e[1]]['act_prob'] = 0.1
-    elif DG[e[0]][e[1]]['act_prob'] > 1:
-      raise Exception("edge activation probability:", \
-          DG[e[0]][e[1]]['act_prob'], "cannot be larger than 1")
+  if not weighted_graph:
+    for e in DG.edges():
+      if 'act_prob' not in DG[e[0]][e[1]]:
+        DG[e[0]][e[1]]['act_prob'] = 0.1
+      elif DG[e[0]][e[1]]['act_prob'] > 1:
+        raise Exception("edge activation probability:", \
+            DG[e[0]][e[1]]['act_prob'], "cannot be larger than 1")
 
   # perform diffusion
   A = copy.deepcopy(seeds)  # prevent side effect
@@ -130,5 +137,140 @@ def _diffuse_one_round(G, A, tried_edges):
 
 def _prop_success(G, src, dest):
   return random.random() <= G[src][dest]['act_prob']
+
+
+
+def vectorized_IC(A, nodes, seed):
+
+
+  infected_status = np.zeros(len(nodes))
+
+  # status list
+  UNINFECTED, INFECTED, REMOVED = 0, 1, 2
+
+  infected_status[seed] = INFECTED
+  infected_nodes = [seed.copy()]
+
+  while True:
+
+    current_active = np.where(infected_status == INFECTED)[0]
+    infected_nodes.append(current_active)
+
+    active_prob = A[current_active].toarray()
+
+    # print(active_prob)
+
+    next_layer = np.random.binomial(1, active_prob)
+
+    # print(next_layer)
+
+    # next_infected = np.where((next_layer == 1).any(axis=0))[0]
+
+    next_infected = next_layer.sum(0) > 0  # boolean array. True if they are infected
+
+    # print(next_infected)
+
+    next_infected = next_infected * (infected_status != REMOVED)
+
+    # print(next_infected)
+
+    # next_infected = next_infected[np.where(infected_status==2)]
+
+    infected_status[current_active] = REMOVED
+
+    infected_status[next_infected] = INFECTED
+
+    # print(infected_status)
+
+    if next_infected.sum() == 0:
+      break
+
+
+
+  return sum(infected_status == REMOVED), infected_nodes
+
+
+
+
+
+
+
+if __name__== '__main__':
+  import pickle
+  import time
+
+
+  with open('../../k_submodular/influence_maximization/diggs/diggs.pkl', 'rb') as f:
+    G = pickle.load(f)
+
+  # with open('../../k_submodular/influence_maximization/diggs/diggs_active_users.pkl', 'rb') as f:
+  #     active_users = pickle.load(f)
+  users = G.nodes()
+
+
+  # weight the graph
+  for u, v in G.edges:
+    G[u][v]['act_prob'] = G[u][v][f'k_{0}']
+
+
+  seed_set = list(users)[:25]
+  n_infected = []
+  total_time = []
+  for i in range(100):
+    start_time = time.time()
+    infected_nodes = independent_cascade(G, seed_set, copy_graph=False)
+    infected_nodes = set([j for i in infected_nodes for j in i])
+    n_infected.append(len(infected_nodes))
+    # print(len(infected_nodes), infected_nodes)
+
+
+    end_time = time.time()
+
+    total_time.append(end_time - start_time)
+
+  print(f'Total time {np.mean(total_time)}')
+  print(f'#Infected {np.mean(n_infected)}')
+
+
+
+
+if __name__== '__main__':
+  import pickle
+  import time
+
+
+  with open('../../k_submodular/influence_maximization/diggs/diggs.pkl', 'rb') as f:
+    G = pickle.load(f)
+
+  # with open('../../k_submodular/influence_maximization/diggs/diggs_active_users.pkl', 'rb') as f:
+  #     active_users = pickle.load(f)
+  users = G.nodes()
+
+
+  # weight the graph
+  for u, v in G.edges:
+    G[u][v]['weight'] = G[u][v][f'k_{0}']
+
+  A = nx.adjacency_matrix(G, nodelist=sorted(G.nodes))
+
+  seed_set = list(users)[:25]
+  n_infected = []
+  total_time = []
+  for i in range(100):
+    start_time = time.time()
+    count, infected_nodes = vectorized_IC(A, G.nodes, seed_set)
+    infected_nodes = set([j for i in infected_nodes for j in i])
+    n_infected.append(len(infected_nodes))
+    # print(len(infected_nodes), infected_nodes)
+
+
+    assert count == len(infected_nodes)
+
+    end_time = time.time()
+
+    total_time.append(end_time - start_time)
+
+  print(f'Total time {np.mean(total_time)}')
+  print(f'#Infected {np.mean(n_infected)}')
 
 
