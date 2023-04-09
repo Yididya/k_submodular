@@ -140,25 +140,78 @@ def _prop_success(G, src, dest):
 
 
 
+# def vectorized_IC(A, nodes, seed):
+#
+#
+#   infected_status = np.zeros(len(nodes))
+#
+#   # status list
+#   UNINFECTED, INFECTED, REMOVED = 0, 1, 2
+#
+#   infected_status[seed] = INFECTED
+#   infected_nodes = [seed.copy()]
+#
+#   while True:
+#
+#     current_active = np.where(infected_status == INFECTED)[0]
+#     infected_nodes.append(current_active)
+#
+#     active_prob = A[current_active].toarray()
+#
+#     # print(active_prob)
+#
+#     next_layer = np.random.binomial(1, active_prob)
+#
+#     # print(next_layer)
+#
+#     # next_infected = np.where((next_layer == 1).any(axis=0))[0]
+#
+#     next_infected = next_layer.sum(0) > 0  # boolean array. True if they are infected
+#
+#     # print(next_infected)
+#
+#     next_infected = next_infected * (infected_status != REMOVED)
+#
+#     # print(next_infected)
+#
+#     # next_infected = next_infected[np.where(infected_status==2)]
+#
+#     infected_status[current_active] = REMOVED
+#
+#     infected_status[next_infected] = INFECTED
+#
+#     # print(infected_status)
+#
+#     if next_infected.sum() == 0:
+#       break
+#
+#
+#
+#   return sum(infected_status == REMOVED), infected_nodes
+
+
 def vectorized_IC(A, nodes, seed):
-
-
   infected_status = np.zeros(len(nodes))
 
   # status list
+
   UNINFECTED, INFECTED, REMOVED = 0, 1, 2
 
   infected_status[seed] = INFECTED
+
   infected_nodes = [seed.copy()]
 
-  while True:
+  current_active = seed
 
-    current_active = np.where(infected_status == INFECTED)[0]
-    infected_nodes.append(current_active)
+  while True:
 
     active_prob = A[current_active].toarray()
 
     # print(active_prob)
+
+    # find uninfected neighbors
+
+    neighbors = (active_prob.sum(0) > 0) * (infected_status == UNINFECTED)
 
     next_layer = np.random.binomial(1, active_prob)
 
@@ -166,75 +219,39 @@ def vectorized_IC(A, nodes, seed):
 
     # next_infected = np.where((next_layer == 1).any(axis=0))[0]
 
-    next_infected = next_layer.sum(0) > 0  # boolean array. True if they are infected
+    next_infected = (next_layer.sum(0) > 0) * neighbors  # boolean array. True if they are infected
 
-    # print(next_infected)
 
-    next_infected = next_infected * (infected_status != REMOVED)
+    # update status
+    infected_status[neighbors] = REMOVED  # indexing using boolean array
 
-    # print(next_infected)
+    infected_status[current_active] = REMOVED  # indexing using list of indices
 
-    # next_infected = next_infected[np.where(infected_status==2)]
+    infected_status[next_infected] = INFECTED  # indexing using boolean array
 
-    infected_status[current_active] = REMOVED
+    # update current active
+    current_active = np.where(infected_status == INFECTED)[0]
 
-    infected_status[next_infected] = INFECTED
-
+    infected_nodes.append(current_active)
     # print(infected_status)
 
     if next_infected.sum() == 0:
       break
 
-
-
-  return sum(infected_status == REMOVED), infected_nodes
-
-
-
-
-
+  return None, infected_nodes
 
 
 if __name__== '__main__':
-  import pickle
-  import time
-
-
-  with open('../../k_submodular/influence_maximization/diggs/diggs.pkl', 'rb') as f:
-    G = pickle.load(f)
-
-  # with open('../../k_submodular/influence_maximization/diggs/diggs_active_users.pkl', 'rb') as f:
-  #     active_users = pickle.load(f)
-  users = G.nodes()
-
-
-  # weight the graph
-  for u, v in G.edges:
-    G[u][v]['act_prob'] = G[u][v][f'k_{0}']
-
-
-  seed_set = list(users)[:25]
-  n_infected = []
-  total_time = []
-  for i in range(100):
-    start_time = time.time()
-    infected_nodes = independent_cascade(G, seed_set, copy_graph=False)
-    infected_nodes = set([j for i in infected_nodes for j in i])
-    n_infected.append(len(infected_nodes))
-    # print(len(infected_nodes), infected_nodes)
-
-
-    end_time = time.time()
-
-    total_time.append(end_time - start_time)
-
-  print(f'Total time {np.mean(total_time)}')
-  print(f'#Infected {np.mean(n_infected)}')
 
 
 
   import pickle
   import time
+
+
+
+
+
 
 
   with open('../../k_submodular/influence_maximization/diggs/diggs.pkl', 'rb') as f:
@@ -251,7 +268,8 @@ if __name__== '__main__':
 
   A = nx.adjacency_matrix(G, nodelist=sorted(G.nodes))
 
-  seed_set = list(users)[:25]
+  seed_set = list(users)[:100]
+  print(seed_set)
   n_infected = []
   total_time = []
   for i in range(100):
@@ -259,10 +277,10 @@ if __name__== '__main__':
     count, infected_nodes = vectorized_IC(A, G.nodes, seed_set)
     infected_nodes = set([j for i in infected_nodes for j in i])
     n_infected.append(len(infected_nodes))
-    # print(len(infected_nodes), infected_nodes)
+    print(len(infected_nodes), sorted(infected_nodes))
 
 
-    assert count == len(infected_nodes)
+    # assert count == len(infected_nodes)
 
     end_time = time.time()
 
@@ -271,4 +289,40 @@ if __name__== '__main__':
   print(f'Total time {np.mean(total_time)}')
   print(f'#Infected {np.mean(n_infected)}')
 
+
+
+
+
+
+  with open('../../k_submodular/influence_maximization/diggs/diggs.pkl', 'rb') as f:
+    G = pickle.load(f)
+
+  # with open('../../k_submodular/influence_maximization/diggs/diggs_active_users.pkl', 'rb') as f:
+  #     active_users = pickle.load(f)
+  users = G.nodes()
+
+
+  # weight the graph
+  for u, v in G.edges:
+    G[u][v]['act_prob'] = G[u][v][f'k_{0}']
+
+
+  seed_set = list(users)[:100]
+  print(seed_set)
+  n_infected = []
+  total_time = []
+  for i in range(100):
+    start_time = time.time()
+    infected_nodes = independent_cascade(G, seed_set, copy_graph=False)
+    infected_nodes = set([j for i in infected_nodes for j in i])
+    n_infected.append(len(infected_nodes))
+    print(len(infected_nodes), sorted(infected_nodes))
+
+
+    end_time = time.time()
+
+    total_time.append(end_time - start_time)
+
+  print(f'Total time {np.mean(total_time)}')
+  print(f'#Infected {np.mean(n_infected)}')
 
