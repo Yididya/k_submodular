@@ -29,7 +29,6 @@ class Database:
             key = Path(f).stem
             if not self.fetch_one(key):
                 # add it
-                successful = False
 
                 try:
                     with open(f, 'r') as f_:
@@ -37,17 +36,17 @@ class Database:
                         vals = line.strip().split('|')
                         n_infected = float(vals[0].strip())
 
-                        successful = self.insert_item(key, n_infected, seed_set=vals[1])
+                        self.insert_item(key, n_infected, seed_set=vals[1])
                 except:
+                    print('failed adding evaluation to databases')
                     pass
-
+            else:
                 # try removing the file --- some could be reading it, so exception may occur
-                if successful:
-                    try:
-                        os.remove(f)
-                    except OSError as e:
-                        print('failed deleting a file')
-                        pass
+                try:
+                    os.remove(f)
+                except OSError as e:
+                    print('failed deleting a file')
+                    pass
 
 
     def insert_item(self, key, value, seed_set):
