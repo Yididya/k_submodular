@@ -40,7 +40,13 @@ def create_K_networks(network, K):
 
     for u, v in network.edges:
         for i in range(K):
-            K_networks[i][u][v]['act_prob'] = K_networks[i][u][v][f'k_{i}']
+            # K_networks[i][u][v]['act_prob'] = K_networks[i][u][v][f'k_{i}']
+            K_networks[i][u][v]['weight'] = K_networks[i][u][v][f'k_{i}']
+
+
+
+    # to adjacency matrix
+    K_networks = [ nx.adjacency_matrix(G, nodelist=sorted(G.nodes)) for G in K_networks]
 
     return K_networks
 
@@ -81,6 +87,7 @@ class Experiment:
         ## connect to database
         self.database = Database(filename=f'{function_evalutions_dir}/evals.db')
         self.write_db = write_db
+        self.n_evaluations = 0
 
 
         ## create directory if not exists
@@ -124,12 +131,13 @@ class Experiment:
         # lookup in the database
         result = self.database.fetch_one(key)
         if result:
+            print('Reading evaluation from database ')
             return result[1] ## the number of infected nodes
 
         # lookup in saved results
         fname = f'{self.function_evaluations_dir}/{key}.txt'
         if os.path.exists(fname):
-            print('looking up save evaluation..')
+            print('looking up saved evaluation from file..')
             with open(fname, 'r') as f:
                 line = f.readline()
                 vals = line.strip().split('|')
@@ -162,8 +170,17 @@ class Experiment:
 
 
     def value_function(self, seed_set, n_mc=None):
+        # increment number of evaluations
+        self.n_evaluations += 1
+
+
         key = self.hash_seed_set(seed_set)
         value = self.lookup_value(key)
+
+        if self.write_db and self.n_evaluations % 5 == 0: ## update db every 10 evaluations
+            # update the db
+            print('Updating database...')
+            self.database.update_db(self.function_evaluations_dir)
 
         if value:
             return value
@@ -181,7 +198,8 @@ class Experiment:
                 start_time = time.time()
                 global ic_runner
                 def ic_runner(t):
-                    layers = independent_cascade.independent_cascade(self.K_networks[topic_idx], list(set(seed_t)))
+                    # layers = independent_cascade.independent_cascade(self.K_networks[topic_idx], list(set(seed_t)))
+                    _, layers = independent_cascade.vectorized_IC(self.K_networks[topic_idx], list(set(seed_t)))
                     infected_nodes_ = [i for l in layers for i in l]
                     return infected_nodes_
 
@@ -198,9 +216,6 @@ class Experiment:
 
         self.save_value(seed_set, key, infected_nodes)
 
-        if self.write_db:
-            # update the db
-            self.database.update_db(self.function_evaluations_dir)
 
 
         return infected_nodes
