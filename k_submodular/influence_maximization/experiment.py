@@ -1,6 +1,9 @@
 import hashlib
 import os, sys
 import pickle
+import time
+
+from database import Database
 
 sys.path.append(os.path.dirname('../'))
 import argparse
@@ -52,7 +55,8 @@ class Experiment:
                  n_mc_final=10_000,
                  algorithm=ohsaka.KGreedyTotalSizeConstrained,
                  n_jobs=5,
-                 function_evalutions_dir='./output/evals'
+                 function_evalutions_dir='./output/evals',
+                 write_db=False
                  ):
 
         assert len(topics) == len(B_i), "#topics should be equal to the items to be selected"
@@ -74,6 +78,11 @@ class Experiment:
 
         ## saving expensive function evaluations
         self.function_evaluations_dir = function_evalutions_dir
+        ## connect to database
+        self.database = Database(filename=f'{function_evalutions_dir}/evals.db')
+        self.write_db = write_db
+
+
         ## create directory if not exists
         os.makedirs(self.function_evaluations_dir, exist_ok=True)
 
@@ -97,7 +106,6 @@ class Experiment:
 
 
     def _initialize_weighted_networks(self):
-        # load facebook network
         self.K_networks = create_K_networks(self.network, len(self.topics))
 
 
@@ -112,23 +120,53 @@ class Experiment:
         sorted_seed_set = sorted(seed_set)
         return hashlib.sha256(str(sorted_seed_set).encode('utf-8')).hexdigest()
 
+    def lookup_value(self, key):
+        # lookup in the database
+        result = self.database.fetch_one(key)
+        if result:
+            return result[1] ## the number of infected nodes
 
-
-    def value_function(self, seed_set, n_mc=None):
-
-        # lookup in the saved results
-        fname = f'{self.function_evaluations_dir}/{self.hash_seed_set(seed_set)}.txt'
+        # lookup in saved results
+        fname = f'{self.function_evaluations_dir}/{key}.txt'
         if os.path.exists(fname):
             print('looking up save evaluation..')
             with open(fname, 'r') as f:
                 line = f.readline()
-                n_infected = float(line.strip())
+                vals = line.strip().split('|')
+                n_infected = float(vals[0])
 
                 return n_infected
 
+        return None
+
+
+    def save_value(self, seed_set, key, value):
+        """
+
+        Parameters
+        ----------
+        seed_set - seed_set
+        key - hash nodes
+        value - the number of infected nodes
+
+        Returns
+        -------
+
+        """
+        # save results to file
+        fname = f'{self.function_evaluations_dir}/{key}.txt'
+
+        with open(fname, 'w') as f:
+            f.write(f'{value}|{seed_set}')
 
 
 
+    def value_function(self, seed_set, n_mc=None):
+        key = self.hash_seed_set(seed_set)
+        value = self.lookup_value(key)
+
+        if value:
+            return value
 
         n_mc = n_mc or self.n_mc
         infected_nodes = {i:[] for i in range(n_mc)}
@@ -140,6 +178,7 @@ class Experiment:
             seed_t = [self.active_nodes[location_idx] for item_idx, location_idx in seed_set if item_idx == topic_idx]
 
             if seed_t:
+                start_time = time.time()
                 global ic_runner
                 def ic_runner(t):
                     layers = independent_cascade.independent_cascade(self.K_networks[topic_idx], list(set(seed_t)))
@@ -151,13 +190,18 @@ class Experiment:
                     for i, n in enumerate(nodes):
                         infected_nodes[i].extend(n)
 
+                total_time = time.time() - start_time
+                print(f'Total time {total_time}')
+
         # Aggregate infected_nodes over MC runs
         infected_nodes = np.mean([len(set(lst)) for lst in list(infected_nodes.values())])
 
-        # save results to file
-        with open(fname, 'w') as f:
-            print(infected_nodes)
-            f.write(str(infected_nodes))
+        self.save_value(seed_set, key, infected_nodes)
+
+        if self.write_db:
+            # update the db
+            self.database.update_db(self.function_evaluations_dir)
+
 
         return infected_nodes
 
@@ -210,6 +254,7 @@ if __name__ == '__main__':
     parser.add_argument('--n-mc', action='store', type=int, default=None)
     parser.add_argument('--tolerance', action='store', type=float, default=[0.1, 0.2, 0.5], nargs='+') # TODO; update this
     parser.add_argument('--output', action='store', type=str, required=False)
+    parser.add_argument('--write-db', action='store_true', default=False)
     parser.add_argument('--alg', action='store', type=str, default=None,
                         choices=['KGreedyTotalSizeConstrained', 'KStochasticGreedyTotalSizeConstrained', 'ThresholdGreedyTotalSizeConstrained'])
 
@@ -224,6 +269,7 @@ if __name__ == '__main__':
     # topics = range(1, 5)
     topics = range(0, 10) #  ALL 10 TOPICS
     print(f'Using Tolerance vals {tolerance_vals}, n_mc {n_mc}')
+    print(f'Option: Writing access - {args.write_db}')
 
     # prepare directories
     output_dir = './output'
@@ -256,7 +302,8 @@ if __name__ == '__main__':
                     algorithm=alg,
                     tolerance= tolerance_vals[:1] if 'Threshold' in alg.__name__ else None,
                     n_jobs=n_jobs,
-                    n_mc=n_mc
+                    n_mc=n_mc,
+                    write_db=args.write_db
                 )
 
                 exp.run()
@@ -292,7 +339,8 @@ if __name__ == '__main__':
                     algorithm=alg,
                     tolerance= tolerance_vals[:1] if 'Threshold' in alg.__name__ else None,
                     n_jobs=n_jobs,
-                    n_mc=n_mc
+                    n_mc=n_mc,
+                    write_db=args.write_db
                 )
 
                 final_vals = exp.final_run([r['S'] for r in results], n_mc=n_mc_final)

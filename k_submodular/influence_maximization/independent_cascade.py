@@ -190,53 +190,49 @@ def _prop_success(G, src, dest):
 #   return sum(infected_status == REMOVED), infected_nodes
 
 
-def vectorized_IC(A, nodes, seed):
-  infected_status = np.zeros(len(nodes))
+def vectorized_IC(A, seeds):
+  infected_status = np.zeros(A.shape[0])
 
   # status list
 
-  UNINFECTED, INFECTED, REMOVED = 0, 1, 2
+  UNINFECTED, ACTIVE, INFECTED = 0, 1, 2
 
-  infected_status[seed] = INFECTED
+  infected_status[seeds] = INFECTED
 
-  infected_nodes = [seed.copy()]
+  infected_nodes = [seeds.copy()]
 
-  current_active = seed
+  current_active = seeds
 
-  while True:
-
+  while len(current_active) != 0:
     active_prob = A[current_active].toarray()
 
-    # print(active_prob)
+    # print(f'active_prob: {active_prob}')
 
     # find uninfected neighbors
 
     neighbors = (active_prob.sum(0) > 0) * (infected_status == UNINFECTED)
 
+    # print(f'neighbors: {neighbors}')
+
     next_layer = np.random.binomial(1, active_prob)
 
-    # print(next_layer)
+    # print(f'next_layer: {next_layer}')
 
     # next_infected = np.where((next_layer == 1).any(axis=0))[0]
 
     next_infected = (next_layer.sum(0) > 0) * neighbors  # boolean array. True if they are infected
 
+    infected_status[current_active] = INFECTED  # indexing using list of indices
 
-    # update status
-    infected_status[neighbors] = REMOVED  # indexing using boolean array
-
-    infected_status[current_active] = REMOVED  # indexing using list of indices
-
-    infected_status[next_infected] = INFECTED  # indexing using boolean array
+    infected_status[next_infected] = ACTIVE  # indexing using boolean array
 
     # update current active
-    current_active = np.where(infected_status == INFECTED)[0]
 
-    infected_nodes.append(current_active)
+    current_active = np.where(infected_status == ACTIVE)[0]
+
+    infected_nodes.append(list(current_active))
+
     # print(infected_status)
-
-    if next_infected.sum() == 0:
-      break
 
   return None, infected_nodes
 
@@ -274,7 +270,7 @@ if __name__== '__main__':
   total_time = []
   for i in range(100):
     start_time = time.time()
-    count, infected_nodes = vectorized_IC(A, G.nodes, seed_set)
+    count, infected_nodes = vectorized_IC(A, seed_set)
     infected_nodes = set([j for i in infected_nodes for j in i])
     n_infected.append(len(infected_nodes))
     print(len(infected_nodes), sorted(infected_nodes))
