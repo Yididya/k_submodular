@@ -56,7 +56,7 @@ class ThresholdGreedyTotalSizeConstrained(ohsaka.KSubmodular):
                     max_gain = gain
                     max_item = (i, v)
 
-        # add the element to the initial set S
+        # add the first best element to the initial set S
         if max_item[0] is not None:
             self._V_available.remove(max_item[1])
             self.V[max_item[1]] = max_item[0]
@@ -190,7 +190,7 @@ class ThresholdGreedyIndividualSizeConstrained(ohsaka.KSubmodular):
                     max_gain = gain
                     max_item = (i, v)
 
-        # add the element to the initial set S
+        # add the first best element to the initial set S
         if max_item[0] is not None:
             self._V_available.remove(max_item[1])
             self.V[max_item[1]] = max_item[0]
