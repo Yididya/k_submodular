@@ -2,7 +2,7 @@ import os
 import sqlite3
 import glob
 from pathlib import Path
-
+import argparse
 
 
 
@@ -21,8 +21,10 @@ class Database:
             cur = conn.cursor()
             cur.execute('create table if not exists t (id varchar(300), value real, seed_set text)')
 
-    def update_db(self, evals_dir):
+    def update_db(self, evals_dir, delete=False):
         files = glob.glob(f'{evals_dir}/*.txt')
+
+        print(f'Reading {len(files)}... ')
 
         for f in files:
             # if not added already
@@ -40,7 +42,7 @@ class Database:
                 except:
                     print('failed adding evaluation to databases')
                     pass
-            else:
+            elif delete:
                 # try removing the file --- some could be reading it, so exception may occur
                 try:
                     os.remove(f)
@@ -54,7 +56,10 @@ class Database:
             with sqlite3.connect(self.filename) as conn:
                 cur = conn.cursor()
                 cur.execute(f"insert into t values (   '{key}' ,    {value}, '{seed_set}' )")
-        except:
+
+        except Exception as e:
+            print('Something went wrong inserting item')
+            print(e)
             return False
 
         return True
@@ -68,6 +73,48 @@ class Database:
 
                 cur.execute(query)
                 return cur.fetchone()
-        except:
+        except Exception as e:
+            print('Something went wrong fetching values...')
+            print(e)
             pass
         return None
+
+    def fetch_n(self, n):
+
+        query = f'select * from t limit {n}'
+
+        try:
+            with sqlite3.connect(self.filename) as conn:
+                cur = conn.cursor()
+
+                cur.execute(query)
+                return cur.fetchall()
+        except Exception as e:
+            print('Something went wrong fetching values...')
+            print(e)
+            pass
+        return None
+
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Database aggregator')
+
+    parser.add_argument('--db', action='store', type=str, required=True)
+    parser.add_argument('--evals-dir', action='store', type=str, required=True)
+
+    args = parser.parse_args()
+    db_file = args.db
+    evals_dir = args.evals_dir
+
+    print(f' Evals dir {evals_dir} db file - {db_file}')
+    db = Database(db_file)
+    db.update_db(evals_dir)
+
+    #
+    # db_file = 'output/evals/evals.remote.db'
+    #
+    # db = Database(db_file)
+    # #
+    # new_db = Database('./output/evals/new_db.db')
+    print('done ')
