@@ -101,7 +101,7 @@ class Experiment:
                 algorithm(self.n,
                     self.B_total,
                     self.B_i,
-                    self.value_function,tolerance=t) for t in self.tolerance]
+                    self.value_function,epsilon=t) for t in self.tolerance]
         else:
             self.algorithms = [algorithm(self.n,
                 self.B_total,
