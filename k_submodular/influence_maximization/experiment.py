@@ -263,7 +263,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Experiment runner')
     parser.add_argument('--mode', action='store', type=str, default='run', choices=['run', 'plot', 'final'])
     # parser.add_argument('--B', action='store', type=int, default=[ 2, 4, 6, 8, 10, 12, 14, 16, 18, 20], nargs='+')
-    parser.add_argument('--B', action='store', type=int, default=[1, 2, 3, 4], nargs='+')
+    parser.add_argument('--B', action='store', type=int, default=[1, 5, 10, 15], nargs='+')
 
     parser.add_argument('--n-jobs', action='store', type=int, default=10)
     parser.add_argument('--n-mc', action='store', type=int, default=None)
