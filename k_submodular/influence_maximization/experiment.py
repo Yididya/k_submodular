@@ -102,7 +102,7 @@ class Experiment:
                 algorithm(self.n,
                     self.B_total,
                     self.B_i,
-                    self.value_function,tolerance=t) for t in self.tolerance]
+                    self.value_function,epsilon=t) for t in self.tolerance]
         else:
             self.algorithms = [algorithm(self.n,
                 self.B_total,
@@ -283,6 +283,7 @@ if __name__ == '__main__':
     n_mc_final = 500
     # topics = range(1, 5)
     topics = range(0, 10) #  ALL 10 TOPICS
+    print(f'Running algorithm - {args.alg}')
     print(f'Using Tolerance vals {tolerance_vals}, n_mc {n_mc}')
     print(f'Option: Writing access - {args.write_db}')
 
@@ -352,7 +353,7 @@ if __name__ == '__main__':
                     B_i=[1] * len(topics),
                     topics=topics,
                     algorithm=alg,
-                    tolerance= tolerance_vals[:1] if 'Threshold' in alg.__name__ else None,
+                    tolerance= [tolerance_vals[0]] if 'Threshold' in alg.__name__ else None,
                     n_jobs=n_jobs,
                     n_mc=n_mc,
                     write_db=args.write_db
