@@ -33,6 +33,7 @@ class ThresholdGreedyTotalSizeConstrained(ohsaka.KSubmodular):
 
         # initialize the min threshold
         self.min_threshold = ((1 - epsilon) * epsilon) * self.d / (2 * self.B_total)
+        print(f'Value of d {self.d}')
 
         # threshold - tau in the text
         self.threshold = self.d
