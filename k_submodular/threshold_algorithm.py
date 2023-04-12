@@ -82,7 +82,7 @@ class ThresholdGreedyTotalSizeConstrained(ohsaka.KSubmodular):
                 # get an element out of the loop
                 item = hq.heappop(pool)
                 i, v = item.index
-                budget_exhausted = len(self.S) == self.B_total
+                budget_exhausted = (len(self.S) == self.B_total)
 
                 if not budget_exhausted and self.V[v] == -1:  # budget available & item is still empty
                     # check table, make sure the saved marginal gain is >= current threshold
