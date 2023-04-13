@@ -173,7 +173,6 @@ class Experiment:
         # increment number of evaluations
         self.n_evaluations += 1
 
-
         key = self.hash_seed_set(seed_set)
         value = self.lookup_value(key)
 
@@ -186,7 +185,7 @@ class Experiment:
             return value
 
         n_mc = n_mc or self.n_mc
-        infected_nodes = {i:[] for i in range(n_mc)}
+        infected_nodes = {mc_id: [] for mc_id in range(n_mc)}
         print(seed_set)
         for topic_idx, topic in enumerate(self.topics):
 
@@ -200,13 +199,13 @@ class Experiment:
                 def ic_runner(t):
                     # layers = independent_cascade.independent_cascade(self.K_networks[topic_idx], list(set(seed_t)))
                     _, layers = independent_cascade.vectorized_IC(self.K_networks[topic_idx], list(set(seed_t)))
-                    infected_nodes_ = [i for l in layers for i in l]
+                    infected_nodes_ = [node for layer in layers for node in layer]
                     return infected_nodes_
 
                 with Pool(self.n_jobs) as p:
                     nodes = p.map(ic_runner, range(n_mc))
-                    for i, n in enumerate(nodes):
-                        infected_nodes[i].extend(n)
+                    for mc_id, n in enumerate(nodes):
+                        infected_nodes[mc_id].extend(n)
 
                 total_time = time.time() - start_time
                 print(f'Total time {total_time}')
@@ -215,8 +214,6 @@ class Experiment:
         infected_nodes = np.mean([len(set(lst)) for lst in list(infected_nodes.values())])
 
         self.save_value(seed_set, key, infected_nodes)
-
-
 
         return infected_nodes
 
@@ -263,11 +260,11 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Experiment runner')
     parser.add_argument('--mode', action='store', type=str, default='run', choices=['run', 'plot', 'final'])
     # parser.add_argument('--B', action='store', type=int, default=[ 2, 4, 6, 8, 10, 12, 14, 16, 18, 20], nargs='+')
-    parser.add_argument('--B', action='store', type=int, default=[1, 5, 10, 15], nargs='+')
+    parser.add_argument('--B', action='store', type=int, default=[1, 5, 10, 15, 30], nargs='+')
 
     parser.add_argument('--n-jobs', action='store', type=int, default=10)
     parser.add_argument('--n-mc', action='store', type=int, default=None)
-    parser.add_argument('--tolerance', action='store', type=float, default=[0.1, 0.2, 0.5], nargs='+') # TODO; update this
+    parser.add_argument('--tolerance', action='store', type=float, default=[0.1, 0.2], nargs='+') # TODO; update this
     parser.add_argument('--output', action='store', type=str, required=False)
     parser.add_argument('--write-db', action='store_true', default=False)
     parser.add_argument('--alg', action='store', type=str, default=None,

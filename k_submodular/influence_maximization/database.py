@@ -138,7 +138,7 @@ if __name__ == '__main__':
     db_file = 'output/evals/evals.db'
 
     db = Database(db_file)
-    #
+
     new_db = Database('./output/evals/new_db.db')
     new_db.update_db('./output/evals/')
     print('done ')

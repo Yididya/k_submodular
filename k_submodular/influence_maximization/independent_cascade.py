@@ -12,6 +12,7 @@ __author__ = """Hung-Hsuan Chen (hhchen@psu.edu)"""
 import copy
 import networkx as nx
 import random
+import pickle
 
 __all__ = ['independent_cascade']
 
@@ -237,88 +238,134 @@ def vectorized_IC(A, seeds):
   return None, infected_nodes
 
 
-if __name__== '__main__':
 
+def evaluate_set(seed_set):
 
+  K = 10
+  n_mc = 100
 
-  import pickle
-  import time
-
-
-
-
-
-
-
+  # load the graph
   with open('../../k_submodular/influence_maximization/diggs/diggs.pkl', 'rb') as f:
     G = pickle.load(f)
 
-  # with open('../../k_submodular/influence_maximization/diggs/diggs_active_users.pkl', 'rb') as f:
-  #     active_users = pickle.load(f)
-  users = G.nodes()
+
+  # get K different adjacency matrices
+  As = []
+  for k in range(K):
+
+    for u, v in G.edges:
+      G[u][v]['weight'] = G[u][v][f'k_{k}']
+
+    As.append(nx.adjacency_matrix(G.copy(), nodelist=sorted(G.nodes)))
+
+  # setup infected nodes
+  infected_nodes = {mc_id: [] for mc_id in range(n_mc)}
+
+  for k in range(K):
+    seed_k = [node_id for k_, node_id in seed_set if k == k_ ]
+
+    for mc_id in range(n_mc):
+      _, layers = vectorized_IC(As[k], list(set(seed_k)))
+      infected_nodes[mc_id].extend([j for layer in layers for j in layer])
+
+  # merge infected nodes across the different topics
+
+  infected_nodes = np.mean([len(set(lst)) for lst in list(infected_nodes.values())])
 
 
-  # weight the graph
-  for u, v in G.edges:
-    G[u][v]['weight'] = G[u][v][f'k_{0}']
-
-  A = nx.adjacency_matrix(G, nodelist=sorted(G.nodes))
-
-  seed_set = list(users)[:100]
-  print(seed_set)
-  n_infected = []
-  total_time = []
-  for i in range(100):
-    start_time = time.time()
-    count, infected_nodes = vectorized_IC(A, seed_set)
-    infected_nodes = set([j for i in infected_nodes for j in i])
-    n_infected.append(len(infected_nodes))
-    print(len(infected_nodes), sorted(infected_nodes))
+  print(f'#Infected nodes {infected_nodes}')
 
 
-    # assert count == len(infected_nodes)
 
-    end_time = time.time()
-
-    total_time.append(end_time - start_time)
-
-  print(f'Total time {np.mean(total_time)}')
-  print(f'#Infected {np.mean(n_infected)}')
-
-
+if __name__ == '__main__':
+  evaluate_set([(4, 683), (8, 551), (3, 336), (3, 142), (4, 1782), (1, 432), (2, 793), (0, 486), (2, 555), (8, 1267), (2, 257), (8, 966), (2, 99), (2, 83), (0, 431), (7, 635), (3, 1029), (6, 489), (6, 443), (5, 3087), (5, 377), (5, 171), (1, 728), (9, 899), (0, 1020), (0, 113), (8, 685), (8, 646), (8, 73), (7, 3157)])
 
 
 
 
-  with open('../../k_submodular/influence_maximization/diggs/diggs.pkl', 'rb') as f:
-    G = pickle.load(f)
-
-  # with open('../../k_submodular/influence_maximization/diggs/diggs_active_users.pkl', 'rb') as f:
-  #     active_users = pickle.load(f)
-  users = G.nodes()
-
-
-  # weight the graph
-  for u, v in G.edges:
-    G[u][v]['act_prob'] = G[u][v][f'k_{0}']
-
-
-  seed_set = list(users)[:100]
-  print(seed_set)
-  n_infected = []
-  total_time = []
-  for i in range(100):
-    start_time = time.time()
-    infected_nodes = independent_cascade(G, seed_set, copy_graph=False)
-    infected_nodes = set([j for i in infected_nodes for j in i])
-    n_infected.append(len(infected_nodes))
-    print(len(infected_nodes), sorted(infected_nodes))
-
-
-    end_time = time.time()
-
-    total_time.append(end_time - start_time)
-
-  print(f'Total time {np.mean(total_time)}')
-  print(f'#Infected {np.mean(n_infected)}')
-
+#
+# if __name__== '__main__':
+#
+#
+#
+#   import pickle
+#   import time
+#
+#
+#
+#
+#
+#
+#
+#   with open('../../k_submodular/influence_maximization/diggs/diggs.pkl', 'rb') as f:
+#     G = pickle.load(f)
+#
+#   # with open('../../k_submodular/influence_maximization/diggs/diggs_active_users.pkl', 'rb') as f:
+#   #     active_users = pickle.load(f)
+#   users = G.nodes()
+#
+#
+#   # weight the graph
+#   for u, v in G.edges:
+#     G[u][v]['weight'] = G[u][v][f'k_{0}']
+#
+#   A = nx.adjacency_matrix(G, nodelist=sorted(G.nodes))
+#
+#   seed_set = list(users)[:100]
+#   print(seed_set)
+#   n_infected = []
+#   total_time = []
+#   for i in range(100):
+#     start_time = time.time()
+#     count, infected_nodes = vectorized_IC(A, seed_set)
+#     infected_nodes = set([j for i in infected_nodes for j in i])
+#     n_infected.append(len(infected_nodes))
+#     print(len(infected_nodes), sorted(infected_nodes))
+#
+#
+#     # assert count == len(infected_nodes)
+#
+#     end_time = time.time()
+#
+#     total_time.append(end_time - start_time)
+#
+#   print(f'Total time {np.mean(total_time)}')
+#   print(f'#Infected {np.mean(n_infected)}')
+#
+#
+#
+#
+#
+#
+#   with open('../../k_submodular/influence_maximization/diggs/diggs.pkl', 'rb') as f:
+#     G = pickle.load(f)
+#
+#   # with open('../../k_submodular/influence_maximization/diggs/diggs_active_users.pkl', 'rb') as f:
+#   #     active_users = pickle.load(f)
+#   users = G.nodes()
+#
+#
+#   # weight the graph
+#   for u, v in G.edges:
+#     G[u][v]['act_prob'] = G[u][v][f'k_{0}']
+#
+#
+#   seed_set = list(users)[:100]
+#   print(seed_set)
+#   n_infected = []
+#   total_time = []
+#   for i in range(100):
+#     start_time = time.time()
+#     infected_nodes = independent_cascade(G, seed_set, copy_graph=False)
+#     infected_nodes = set([j for i in infected_nodes for j in i])
+#     n_infected.append(len(infected_nodes))
+#     print(len(infected_nodes), sorted(infected_nodes))
+#
+#
+#     end_time = time.time()
+#
+#     total_time.append(end_time - start_time)
+#
+#   print(f'Total time {np.mean(total_time)}')
+#   print(f'#Infected {np.mean(n_infected)}')
+#
