@@ -141,9 +141,12 @@ class Experiment:
             with open(fname, 'r') as f:
                 line = f.readline()
                 vals = line.strip().split('|')
-                n_infected = float(vals[0])
+                try:
+                    n_infected = float(vals[0])
 
-                return n_infected
+                    return n_infected
+                except ValueError:
+                    return None
 
         return None
 
@@ -211,11 +214,11 @@ class Experiment:
                 print(f'Total time {total_time}')
 
         # Aggregate infected_nodes over MC runs
-        infected_nodes = np.mean([len(set(lst)) for lst in list(infected_nodes.values())])
+        n_infected_nodes = np.mean([len(set(lst)) for lst in list(infected_nodes.values())])
 
-        self.save_value(seed_set, key, infected_nodes)
+        self.save_value(seed_set, key, n_infected_nodes)
 
-        return infected_nodes
+        return n_infected_nodes
 
 
     def run(self):
