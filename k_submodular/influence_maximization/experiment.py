@@ -66,6 +66,7 @@ class Experiment:
                  ):
 
         assert len(topics) == len(B_i), "#topics should be equal to the items to be selected"
+        self.algorithm = algorithm
 
         self.topics = topics # item id
         self.network, self.active_nodes = prepare_network()
@@ -89,6 +90,7 @@ class Experiment:
         self.database = None
         self.write_db = write_db
         self.n_evaluations = 0
+        self._initialize_eval_db()
 
         print(f'Using {self.n_jobs} jobs, n_mc {self.n_mc}')
 
@@ -110,6 +112,22 @@ class Experiment:
 
     def _initialize_weighted_networks(self):
         self.K_networks = create_K_networks(self.network, len(self.topics))
+
+    def _initialize_eval_db(self):
+        # create directory if not exists
+        os.makedirs(self.base_evaluations_dir, exist_ok=True)
+        save_dir = f'{self.base_evaluations_dir}/{self.algorithm.__name__}'
+
+        if self.tolerance:
+            save_dir += f'_{self.tolerance[0]}'  # add corresponding tolerance value in folder name
+
+        os.makedirs(save_dir, exist_ok=True)
+
+        self.function_evaluations_dir = save_dir
+
+        # connect to database
+        self.database = Database(filename=f'{self.function_evaluations_dir}/evals.db')
+
 
 
     def hash_seed_set(self, seed_set):
@@ -188,7 +206,7 @@ class Experiment:
         key = self.hash_seed_set(seed_set)
         value = self.lookup_value(key)
 
-        if self.write_db and self.n_evaluations % 5 == 0:  # update db every 10 evaluations
+        if self.write_db and self.n_evaluations % 50 == 0:  # update db every 10 evaluations
             # update the db
             print('Updating database...')
             self.database.update_db(self.function_evaluations_dir)
@@ -234,20 +252,6 @@ class Experiment:
 
         # create the evaluation files if does not exist
         for idx, alg in enumerate(self.algorithms):
-            # create directory if not exists
-            os.makedirs(self.base_evaluations_dir, exist_ok=True)
-            save_dir = f'{self.base_evaluations_dir}/{alg.__class__.__name__}'
-
-            if self.tolerance:
-                save_dir += f'{self.tolerance[idx]}'  # add corresponding tolerance value in folder name
-
-            os.makedirs(save_dir, exist_ok=True)
-
-            self.function_evaluations_dir = save_dir
-
-
-            # connect to database
-            self.database = Database(filename=f'{self.function_evaluations_dir}/evals.db')
 
             alg.run()
 
