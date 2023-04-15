@@ -21,8 +21,12 @@ class Database:
             cur = conn.cursor()
             cur.execute('create table if not exists t (id varchar(300), value real, seed_set text)')
 
-    def update_db(self, evals_dir, delete=False):
+    def update_db(self, evals_dir, move=True):
         files = glob.glob(f'{evals_dir}/*.txt')
+
+        archive_dir = f'{evals_dir}/archive'  # archive dir
+        os.makedirs(archive_dir, exist_ok=True)
+
 
         print(f'Reading {len(files)}... ')
         items = []
@@ -43,10 +47,10 @@ class Database:
                 except:
                     print('failed adding evaluation to databases')
                     pass
-            elif delete:
-                # try removing the file --- some could be reading it, so exception may occur
+            elif move:
+                # try moving the file --- some could be reading it, so exception may occur
                 try:
-                    os.remove(f)
+                    os.rename(f, f'{archive_dir}/{Path(f).name}')
                 except OSError as e:
                     print('failed deleting a file')
                     pass
@@ -121,10 +125,21 @@ class Database:
 
 
 if __name__ == '__main__':
-    # parser = argparse.ArgumentParser(description='Database aggregator')
-    #
-    # parser.add_argument('--db', action='store', type=str, required=True)
-    # parser.add_argument('--evals-dir', action='store', type=str, required=True)
+    parser = argparse.ArgumentParser(description='Database aggregator')
+
+    parser.add_argument('--db', action='store', type=str, required=True)
+    parser.add_argument('--evals-dir', action='store', type=str, required=True)
+
+    args = parser.parse_args()
+    db_file = args.db
+    evals_dir = args.evals_dir
+
+    print(f' Evals dir {evals_dir} db file - {db_file}')
+    db = Database(db_file)
+    db.update_db(evals_dir)
+
+
+    # db_file = 'output/evals/evals.db'
     #
     # args = parser.parse_args()
     # db_file = args.db
