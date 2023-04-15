@@ -189,7 +189,7 @@ class Experiment:
         if not inserted:
             print('warn - function evaluation not saved to dataset')
 
-    def value_function(self, seed_set, n_mc=None):
+    def value_function(self, seed_set, n_mc=None, reevaluate=False):
         """
 
         Parameters
@@ -200,21 +200,27 @@ class Experiment:
         -------
 
         """
+        # number of MC runs
+        n_mc = n_mc or self.n_mc
+
         # increment number of evaluations
         self.n_evaluations += 1
-
         key = self.hash_seed_set(seed_set)
-        value = self.lookup_value(key)
 
-        if self.write_db and self.n_evaluations % 50 == 0:  # update db every 10 evaluations
-            # update the db
-            print('Updating database...')
-            self.database.update_db(self.function_evaluations_dir)
+        if not reevaluate:
+            # look up evaluation in saved data
+            value = self.lookup_value(key)
 
-        if value:
-            return value
+            if self.write_db and self.n_evaluations % 50 == 0:  # update db every 10 evaluations
+                # update the db
+                print('Updating database...')
+                self.database.update_db(self.function_evaluations_dir)
 
-        n_mc = n_mc or self.n_mc
+            if value:
+                return value
+        else:
+            n_mc = 1000  # more MC runs
+
         infected_nodes = {mc_id: [] for mc_id in range(n_mc)}
         print(seed_set)
         for topic_idx, topic in enumerate(self.topics):
@@ -243,7 +249,10 @@ class Experiment:
         # Aggregate infected_nodes over MC runs
         n_infected_nodes = np.mean([len(set(lst)) for lst in list(infected_nodes.values())])
 
-        self.save_value(seed_set, key, n_infected_nodes)
+        # update the database only when during first evaluations
+        if not reevaluate:
+            self.save_value(seed_set, key, n_infected_nodes)
+
 
         return n_infected_nodes
 

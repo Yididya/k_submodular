@@ -94,6 +94,7 @@ class ThresholdGreedyTotalSizeConstrained(ohsaka.KSubmodular):
                         break
                     gain = self.marginal_gain(i, v)
                     if gain >= self.threshold:
+                        self.marginal_gain(i, v, reevaluate=True)
                         # add (item, index) pair to list and
                         self._V_available.remove(v)
                         self.V[v] = i
@@ -139,7 +140,7 @@ Inputs
     * B_i - individual sizes 
     * value_function - the function to evaluate the selected sets
 
-$\tau$ -  tolerance value 
+$tau$ -  tolerance value 
 """
 
 class ThresholdGreedyIndividualSizeConstrained(ohsaka.KSubmodular):
@@ -253,6 +254,7 @@ class ThresholdGreedyIndividualSizeConstrained(ohsaka.KSubmodular):
                     gain = self.marginal_gain(i, v)
                     if gain >= self.threshold:
                         # add (item, index) pair to list and
+                        self.marginal_gain(i, v, reevaluate=True)
                         self._V_available.remove(v)
                         self.V[v] = i
                         self.S.append((i, v))

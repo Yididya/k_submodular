@@ -115,16 +115,17 @@ class KSubmodular():
 
 
 
-    def marginal_gain(self, i, v, update_count=True):
+    def marginal_gain(self, i, v, update_count=True, reevaluate=False):
         """
         marginal gain of adding item i onto index v
         :param i - item i, on index v
+        :param reevaluate toggle option for revaluting functions
         """
         assert self.V[v] == -1, 'void already filled'
         if update_count:
             self.n_evaluations += 1
 
-        value = self.value_function(self.S + [(i, v)]) - self.current_value
+        value = self.value_function(self.S + [(i, v)], reevaluate=reevaluate) - self.current_value
 
         if update_count:
             self.update_marginal(i, v, value)
@@ -181,6 +182,8 @@ class KGreedyTotalSizeConstrained(KSubmodular):
                 
             # update V_available 
             if max_item[0] is not None and max_item[1] is not None:
+                # re-evaluating for better accuracy
+                self.marginal_gain(max_item[0], max_item[1], reevaluate=True)
                 print(f'Selected {max_item} with gain {max_value}')
                 self._V_available.remove(max_item[1])
                 self.V[max_item[1]] = max_item[0]
@@ -249,6 +252,7 @@ class KStochasticGreedyTotalSizeConstrained(KSubmodular):
 
             # update V_available
             if max_item[0] is not None and max_item[1] is not None:
+                self.marginal_gain(max_item[0], max_item[1], reevaluate=True)
                 print(f'Selected {max_item} with gain {max_value}')
                 self._V_available.remove(max_item[1])
                 self.V[max_item[1]] = max_item[0]
@@ -330,6 +334,7 @@ class KGreedyIndividualSizeConstrained(KSubmodular):
                 
             # update V_available 
             if max_item[0] is not None:
+                self.marginal_gain(max_item[0], max_item[1], reevaluate=True)
                 print(f'Selected {max_item} with gain {max_value}')
                 self._V_available.remove(max_item[1])
                 self.V[max_item[1]] = max_item[0]
@@ -415,6 +420,7 @@ class KStochasticGreedyIndividualSizeConstrained(KGreedyIndividualSizeConstraine
 
                 if max_item[0] is not None and len(R) >= self.subset_size_i(max_item[0]) or not choices:
                     # update V_available
+                    self.marginal_gain(max_item[0], max_item[1], reevaluate=True)
                     print(f'Selected {max_item} with gain {max_value}')
                     self._V_available.remove(max_item[1])
                     self.V[max_item[1]] = max_item[0]
