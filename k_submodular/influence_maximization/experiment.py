@@ -82,19 +82,15 @@ class Experiment:
         self.n_mc_final = n_mc_final
         self.n_jobs = n_jobs
 
-        ## saving expensive function evaluations
-        self.function_evaluations_dir = function_evalutions_dir
-        ## connect to database
-        self.database = Database(filename=f'{function_evalutions_dir}/evals.db')
+        # saving expensive function evaluations
+        self.base_evaluations_dir = function_evalutions_dir
+        self.function_evaluations_dir = None
+
+        self.database = None
         self.write_db = write_db
         self.n_evaluations = 0
 
-
-        ## create directory if not exists
-        os.makedirs(self.function_evaluations_dir, exist_ok=True)
-
         print(f'Using {self.n_jobs} jobs, n_mc {self.n_mc}')
-
 
         # initialize algorithm
         if self.tolerance is not None:
@@ -132,7 +128,7 @@ class Experiment:
         result = self.database.fetch_one(key)
         if result:
             print('Reading evaluation from database ')
-            return result[1] ## the number of infected nodes
+            return result[1]  # the number of infected nodes
 
         # lookup in saved results
         fname = f'{self.function_evaluations_dir}/{key}.txt'
@@ -170,16 +166,29 @@ class Experiment:
         with open(fname, 'w') as f:
             f.write(f'{value}|{seed_set}')
 
-
+        # save value to database
+        inserted = self.database.insert_item(key, value=value, seed_set=seed_set)
+        if not inserted:
+            print('warn - function evaluation not saved to dataset')
 
     def value_function(self, seed_set, n_mc=None):
+        """
+
+        Parameters
+        ----------
+        seed_set - selected seed set
+        n_mc - number of MC runs
+        Returns the function value for a given seed_set
+        -------
+
+        """
         # increment number of evaluations
         self.n_evaluations += 1
 
         key = self.hash_seed_set(seed_set)
         value = self.lookup_value(key)
 
-        if self.write_db and self.n_evaluations % 5 == 0: ## update db every 10 evaluations
+        if self.write_db and self.n_evaluations % 5 == 0:  # update db every 10 evaluations
             # update the db
             print('Updating database...')
             self.database.update_db(self.function_evaluations_dir)
@@ -222,7 +231,24 @@ class Experiment:
 
 
     def run(self):
-        for alg in self.algorithms:
+
+        # create the evaluation files if does not exist
+        for idx, alg in enumerate(self.algorithms):
+            # create directory if not exists
+            os.makedirs(self.base_evaluations_dir, exist_ok=True)
+            save_dir = f'{self.base_evaluations_dir}/{alg.__class__.__name__}'
+
+            if self.tolerance:
+                save_dir += f'{self.tolerance[idx]}'  # add corresponding tolerance value in folder name
+
+            os.makedirs(save_dir, exist_ok=True)
+
+            self.function_evaluations_dir = save_dir
+
+
+            # connect to database
+            self.database = Database(filename=f'{self.function_evaluations_dir}/evals.db')
+
             alg.run()
 
 
