@@ -166,8 +166,9 @@ class KGreedyTotalSizeConstrained(KSubmodular):
             print(f'{self.__class__.__name__} - Iteration {j}/{self.B_total}')
             max_item, max_value = (None, None), -np.inf
             pool = self.pair_pool()
+            n_items = len(pool)
 
-            for _ in range(len(pool)):
+            for _ in range(n_items):
                 # get an element out of the loop
                 item = hq.heappop(pool)
                 i, v = item.index
@@ -237,8 +238,9 @@ class KStochasticGreedyTotalSizeConstrained(KSubmodular):
                 V_avail = random.sample(V_avail, k=subset_size)
 
             pool = self.pair_pool(V_available=V_avail) # restrict to the pool only to the random choices
+            n_items = len(pool)
 
-            for _ in range(len(pool)):
+            for _ in range(n_items):
                 # get an element out of the loop
                 item = hq.heappop(pool)
                 i, v = item.index
@@ -318,8 +320,9 @@ class KGreedyIndividualSizeConstrained(KSubmodular):
 
 
             pool = self.pair_pool(V_available=V_avail)  # restrict to the pool only to the random choices
+            n_items = len(pool)
 
-            for _ in range(len(pool)):
+            for _ in range(n_items):
                 # get an element out of the loop
                 item = hq.heappop(pool)
                 i, v = item.index

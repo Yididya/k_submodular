@@ -78,8 +78,8 @@ class ThresholdGreedyTotalSizeConstrained(ohsaka.KSubmodular):
         while self.threshold > self.min_threshold:
 
             pool = self.pair_pool()
-
-            for _ in range(len(pool)):
+            n_items = len(pool)  # items in the pool
+            for _ in range(n_items):
                 # get an element out of the loop
                 item = hq.heappop(pool)
                 i, v = item.index
@@ -237,8 +237,8 @@ class ThresholdGreedyIndividualSizeConstrained(ohsaka.KSubmodular):
         while self.threshold > self.min_threshold:
 
             pool = self.pair_pool()
-
-            for _ in range(len(pool)):
+            n_items = len(pool)  # items in the pool
+            for _ in range(n_items):
                 # get an element out of the loop
                 item = hq.heappop(pool)
                 i, v = item.index
