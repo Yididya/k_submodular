@@ -3,7 +3,7 @@ import os, sys
 import pickle
 import time
 
-from database import Database
+from k_submodular.database import Database
 
 sys.path.append(os.path.dirname('../'))
 import argparse
@@ -14,10 +14,13 @@ import networkx as nx
 import pandas as pd
 import matplotlib.pyplot as plt
 
-import ohsaka
-import threshold_algorithm
 
-import independent_cascade
+from k_submodular import ohsaka
+from k_submodular import threshold_algorithm
+# import ohsaka
+# import threshold_algorithm
+
+from k_submodular.influence_maximization import independent_cascade
 
 
 plt.rcParams['figure.figsize'] = [10,8]
@@ -106,9 +109,6 @@ class Experiment:
                 self.B_total,
                 self.B_i,
                 self.value_function)]
-
-
-
 
     def _initialize_weighted_networks(self):
         self.K_networks = create_K_networks(self.network, len(self.topics))
@@ -261,7 +261,6 @@ class Experiment:
 
         # create the evaluation files if does not exist
         for idx, alg in enumerate(self.algorithms):
-
             alg.run()
 
 
@@ -300,16 +299,16 @@ class Experiment:
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Experiment runner')
-    parser.add_argument('--mode', action='store', type=str, default='run', choices=['run', 'plot', 'final'])
+    parser.add_argument('--mode', action='store', type=str, default='plot', choices=['run', 'plot', 'final'])
     # parser.add_argument('--B', action='store', type=int, default=[ 2, 4, 6, 8, 10, 12, 14, 16, 18, 20], nargs='+')
-    parser.add_argument('--B', action='store', type=int, default=[1, 5, 10, 15, 30], nargs='+')
+    parser.add_argument('--B', action='store', type=int, default=[1, 5, 10, 15, 20, 25], nargs='+')
 
     parser.add_argument('--n-jobs', action='store', type=int, default=10)
     parser.add_argument('--n-mc', action='store', type=int, default=None)
-    parser.add_argument('--tolerance', action='store', type=float, default=[0.1, 0.2], nargs='+') # TODO; update this
+    parser.add_argument('--tolerance', action='store', type=float, default=[0.1, 0.2, 0.5], nargs='+') # TODO; update this
     parser.add_argument('--output', action='store', type=str, required=False)
     parser.add_argument('--write-db', action='store_true', default=False)
-    parser.add_argument('--alg', action='store', type=str, default=None,
+    parser.add_argument('--alg', action='store', type=str, default='ThresholdGreedyTotalSizeConstrained',
                         choices=['KGreedyTotalSizeConstrained', 'KStochasticGreedyTotalSizeConstrained', 'ThresholdGreedyTotalSizeConstrained'])
 
     args = parser.parse_args()
@@ -337,8 +336,8 @@ if __name__ == '__main__':
     }
 
     algorithms = [
-        ohsaka.KGreedyTotalSizeConstrained,
-        ohsaka.KStochasticGreedyTotalSizeConstrained,
+        # ohsaka.KGreedyTotalSizeConstrained,
+        # ohsaka.KStochasticGreedyTotalSizeConstrained,
         threshold_algorithm.ThresholdGreedyTotalSizeConstrained
     ]
 
