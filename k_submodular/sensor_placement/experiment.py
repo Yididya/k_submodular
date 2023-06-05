@@ -12,8 +12,9 @@ import networkx
 import pandas as pd
 import matplotlib.pyplot as plt
 
-import ohsaka
-import threshold_algorithm
+from k_submodular import ohsaka
+from k_submodular import threshold_algorithm
+import pandas as pd
 
 
 plt.rcParams['figure.figsize'] = [10,8]
@@ -33,6 +34,7 @@ class Experiment:
                  B_total,
                  B_i,
                  tolerance=None, # tolerance parameter(epsilon) for the threshold
+                 delta=None,
                  algorithm=ohsaka.KGreedyIndividualSizeConstrained,
                  ):
 
@@ -67,6 +69,7 @@ class Experiment:
         assert self.k == 3, "Only three readings considered"
 
         self.tolerance = tolerance
+        self.delta = delta
 
         # initialize algorithm
         if self.tolerance is not None:
@@ -76,11 +79,16 @@ class Experiment:
                     self.B_i.copy(),
                     self.value_function,
                     epsilon=t) for t in self.tolerance]
-        else:
+        elif self.delta is not None:
             self.algorithms = [algorithm(self.n,
                 self.B_total,
                 self.B_i,
-                self.value_function)]
+                self.value_function, delta=d) for d in self.delta]
+        else:
+            self.algorithms = [algorithm(self.n,
+                                         self.B_total,
+                                         self.B_i,
+                                         self.value_function)]
 
     def calculate_entropy(self, cols):
         n_data_points = self.df.shape[0]
@@ -113,7 +121,8 @@ class Experiment:
             'n_evals': alg.n_evaluations,
             'function_value': alg.current_value,
             'S': alg.S,
-            'tolerance': self.tolerance[i] if self.tolerance is not None else None
+            'tolerance': self.tolerance[i] if self.tolerance is not None else None,
+            'delta': self.delta[i] if self.delta is not None else None
         } for i, alg in enumerate(self.algorithms)]
 
 
@@ -125,9 +134,8 @@ if __name__ == '__main__':
     parser.add_argument('--mode', action='store', type=str, default='plot', choices=['run', 'plot'])
     parser.add_argument('--B', action='store', type=int, default=None, nargs='+')
     parser.add_argument('--B_i', action='store', type=int, default=list(range(1, 19)), nargs='+')
-    parser.add_argument('--tolerance', action='store', type=float, default=[0.1, 0.2, 0.5], nargs='+')
-    # TODO: add delta options for stochastic greedy
-    # parser.add_argument('--tolerance', action='store', type=float, default=[0.1, 0.2, 0.5], nargs='+')
+    parser.add_argument('--tolerance', action='store', type=float, default=[0.1, 0.2, 0.5, 0.8], nargs='+')
+    parser.add_argument('--delta', action='store', type=float, default=[0.1, 0.2, 0.5, 0.8], nargs='+')
 
     parser.add_argument('--output', action='store', type=str, required=False)
     parser.add_argument('--alg', action='store', type=str, default=None,
@@ -142,6 +150,7 @@ if __name__ == '__main__':
     mode = args.mode
     B_totals = args.B
     tolerance_vals = args.tolerance
+    delta_vals = args.delta
     K = 3
     B_i_s = [[B_i] * K for B_i in args.B_i ]
     B_totals = [ sum(B_i) for B_i in B_i_s ]
