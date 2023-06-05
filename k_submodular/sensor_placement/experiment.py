@@ -126,7 +126,12 @@ class Experiment:
         } for i, alg in enumerate(self.algorithms)]
 
 
-
+def dict_to_file(dict_, file):
+    table = list(dict_.values())
+    df = pd.DataFrame(table)
+    df = df.transpose()
+    df.columns = list(dict_.keys())
+    df.to_csv(file)
 
 if __name__ == '__main__':
 
