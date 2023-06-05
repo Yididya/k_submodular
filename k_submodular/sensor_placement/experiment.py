@@ -6,10 +6,7 @@ import pickle
 sys.path.append(os.path.dirname('../'))
 import argparse
 
-from multiprocessing import Pool
 import numpy as np
-import networkx
-import pandas as pd
 import matplotlib.pyplot as plt
 
 from k_submodular import ohsaka
@@ -188,15 +185,23 @@ if __name__ == '__main__':
                     B_total=B_total,
                     B_i=B_i_s[j].copy(),
                     algorithm=alg,
-                    tolerance= tolerance_vals if 'Threshold' in alg.__name__ else None
+                    tolerance= tolerance_vals if 'Threshold' in alg.__name__ else None,
+                    delta= delta_vals if 'KGreedy' in alg.__name__ or 'KStochastic' in alg.__name__ else None
                 )
 
 
                 exp.run()
 
                 # save file
-                with open(f'{output_dir}/{alg.__name__}__{B_total}_.pkl', 'wb') as f:
-                    pickle.dump(exp.results, f)
+                if 'Threshold' in alg.__name__:
+                    with open(f'{output_dir}/{alg.__name__}__{B_total}_{tolerance_vals[0]}.pkl', 'wb') as f:
+                        pickle.dump(exp.results, f)
+                elif 'KStochastic' in alg.__name__:
+                    with open(f'{output_dir}/{alg.__name__}__{B_total}_{delta_vals[0]}.pkl', 'wb') as f:
+                        pickle.dump(exp.results, f)
+                else:
+                    with open(f'{output_dir}/{alg.__name__}__{B_total}_.pkl', 'wb') as f:
+                        pickle.dump(exp.results, f)
 
     elif mode == 'plot':
         # load the files
@@ -212,14 +217,32 @@ if __name__ == '__main__':
                     function_values[name] = []
                     n_evaluations[name] = []
                     algs.append(alg)
+            elif 'KStochastic' in alg.__name__:
+                for d in delta_vals:
+                    name = alg.name + f'($\delta$={d})'
+                    function_values[name] = []
+                    n_evaluations[name] = []
+                    algs.append(alg)
             else:
-                function_values[alg.name] = []
-                n_evaluations[alg.name] = []
+                name = alg.name
+                function_values[name] = []
+                n_evaluations[name] = []
                 algs.append(alg)
 
             for B_total in B_totals:
-                with open(f'{output_dir}/{alg.__name__}__{B_total}_.pkl', 'rb') as f:
-                    results = pickle.load(f)
+                if 'Threshold' in alg.__name__:
+                    results = []
+                    for t_val in tolerance_vals:
+                        with open(f'{output_dir}/{alg.__name__}__{B_total}_{t_val}.pkl', 'rb') as f:
+                            results.extend(pickle.load(f))
+                elif 'KStochastic' in alg.__name__:
+                    results = []
+                    for d in delta_vals:
+                        with open(f'{output_dir}/{alg.__name__}__{B_total}_{d}.pkl', 'rb') as f:
+                            results.extend(pickle.load(f))
+                else:
+                    with open(f'{output_dir}/{alg.__name__}__{B_total}_.pkl', 'rb') as f:
+                        results = pickle.load(f)
 
                 if type(results) == dict: results = [results]
 
@@ -228,13 +251,19 @@ if __name__ == '__main__':
                         name = alg.name + f'($\epsilon$={tolerance_vals[i]})'
                         function_values[name].append(r['function_value'])
                         n_evaluations[name].append(r['n_evals'])
+                    elif 'KStochastic' in alg.__name__:
+                        name = alg.name + f'($\delta$={delta_vals[i]})'
+
+                        function_values[name].append(r['function_value'])
+                        n_evaluations[name].append(r['n_evals'])
                     else:
+                        name = alg.name
 
-                        function_values[alg.name].append(r['function_value'])
-                        n_evaluations[alg.name].append(r['n_evals'])
+                        function_values[name].append(r['function_value'])
+                        n_evaluations[name].append(r['n_evals'])
 
 
-        marker_types = ['o', 'v', '*', 'D', 'x', 'H']
+        marker_types = ['o', 'v', '*', 'D', 'x', 'H', 1, 8, 9, 'D', 6]
         for i, key in enumerate(function_values.keys()):
             plt.plot(range(len(B_totals)), function_values[key], label=key, marker=marker_types[i])
             plt.ylabel('Entropy')
@@ -257,3 +286,9 @@ if __name__ == '__main__':
         plt.savefig(f'{output_dir}/figure-function-evaluations.png', dpi=300, bbox_inches='tight')
         plt.show()
         plt.figure()
+
+        # save to file
+        dict_to_file(function_values, f'{output_dir}/function_values.csv')
+        dict_to_file(n_evaluations, f'{output_dir}/n_evaluations.csv')
+
+
