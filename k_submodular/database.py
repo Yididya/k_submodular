@@ -122,6 +122,43 @@ class Database:
             pass
         return None
 
+    def fetch_all(self):
+        query = 'select * from t'
+
+        try:
+            with sqlite3.connect(self.filename) as conn:
+                cur = conn.cursor()
+
+                cur.execute(query)
+                return cur.fetchall()
+        except Exception as e:
+            print('Something went wrong fetching values...')
+            print(e)
+            pass
+        return None
+
+
+    def delete_duplicates(self):
+        query = """
+        delete   from t
+            where    rowid not in(
+         select  min(rowid)
+         from    t
+         group by id )"""
+
+        try:
+            with sqlite3.connect(self.filename) as conn:
+                cur = conn.cursor()
+
+                cur.execute(query)
+        except Exception as e:
+            print('Something went wrong fetching values...')
+            print(e)
+            pass
+        return None
+
+
+
 
 
 if __name__ == '__main__':
