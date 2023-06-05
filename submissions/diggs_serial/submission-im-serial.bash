@@ -2,13 +2,13 @@
 
 #SBATCH --nodes=1 # request one node
 
-#SBATCH --cpus-per-task=7  # ask for 8 cpus
+#SBATCH --cpus-per-task=20  # ask for 8 cpus
 
 #SBATCH --mem=10G # Maximum amount of memory this job will be given, try to estimate this to the best of your ability. This asks for 128 GB of ram.
 
-#SBATCH --partition=speedy
+#SBATCH --partition=biocrunch
 
-#SBATCH --time=1-10:00:00 # ask that the job be allowed to run for 2 days, 2 hours, 30 minutes, and 2 seconds.  --time=2-02:30:02
+#SBATCH --time=2-00:00:00 # ask that the job be allowed to run for 2 days, 2 hours, 30 minutes, and 2 seconds.  --time=2-02:30:02
 
 #SBATCH --array=0-0 #specify how many times you want a job to run, we have a total of 7 array spaces
 
@@ -37,4 +37,7 @@ cd /work/LAS/cjquinn-lab/Guanyu/uai23/k_submodular/k_submodular/influence_maximi
 
 # the commands we're running are below
 
-python experiment_fb.py --alg  $1 --n-jobs 7 --B $2 --tolerance $3 --n-mc 100 --mode run
+for B in 1 5 10 15 20 25
+do
+  python experiment.py --alg  $1 --n-jobs 18 --B $B --tolerance $2 --n-mc 100 --mode run --write-db
+done
