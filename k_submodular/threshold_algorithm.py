@@ -1,5 +1,5 @@
 import numpy as np
-import ohsaka
+from k_submodular import ohsaka
 import heapq as hq
 
 
