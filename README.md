@@ -1,6 +1,6 @@
 ## k_submodular 
 
-This repository contains implementation of algorithm in the paper "Size-Constrained k-Submodular Maximization in Near-Linear Time"
+This repository contains implementation of algorithms in the paper "Size-Constrained k-Submodular Maximization in Near-Linear Time"
 
 
 
