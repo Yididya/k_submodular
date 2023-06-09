@@ -4,7 +4,7 @@ This repository contains implementation of algorithm in the paper "Size-Constrai
 
 
 
-### Installing requirements 
+### Installation requirements 
 * Python 3.8 or newer
 
 ```bash
